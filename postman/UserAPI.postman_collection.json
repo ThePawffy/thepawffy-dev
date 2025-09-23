@@ -1,0 +1,55 @@
+{
+  "info": {
+    "name": "User API - Node.js + Firebase",
+    "_postman_id": "b1c3fbd2-9d82-49a0-9c9c-111111111111",
+    "description": "Collection for testing Node.js + Firebase User API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Check User (GET)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/users/{{doc_id}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "users", "{{doc_id}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upsert User (POST)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"user123\",\n  \"email\": \"john@example.com\",\n  \"phoneNumber\": \"9876543210\",\n  \"name\": \"John Doe\",\n  \"description\": \"Pet lover\",\n  \"addresses\": [\n    {\n      \"fullAddress\": \"123 Street, City\",\n      \"latitude\": 28.6,\n      \"longitude\": 77.2,\n      \"postalCode\": \"110001\",\n      \"city\": \"Delhi\",\n      \"state\": \"Delhi\",\n      \"country\": \"India\",\n      \"locality\": \"Connaught Place\",\n      \"landmark\": \"Near Metro\",\n      \"direction\": \"Opposite Mall\",\n      \"houseNo\": \"12A\",\n      \"tag\": \"home\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/users/upsert",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "users", "upsert"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "doc_id",
+      "value": "user123"
+    }
+  ]
+}

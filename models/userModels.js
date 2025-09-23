@@ -1,0 +1,57 @@
+const { admin } = require("../config/firebase");
+
+const getDummyUser = (docId) => ({
+  id: docId,
+  email: "",
+  phoneNumber: "",
+  name: "",
+  description: "",
+  petType: "",
+  profileImage: "",
+  idProof: "",
+  isActive: true,
+  role: "customer",
+  selectedAddress: {
+    fullAddress: "",
+    latitude: 0.0,
+    longitude: 0.0,
+    postalCode: "",
+    city: "",
+    state: "",
+    country: "",
+    locality: "",
+    landmark: "",
+    direction: "",
+    houseNo: "",
+    tag: "",
+  },
+  addresses: [],
+  pet: {
+    id: "",
+    name: "",
+    gender: "",
+    petType: "",
+    petBreedList: [],
+    ageInMonths: 0.0,
+    weightInKg: 0.0,
+    aggressionLevel: "",
+    isVaccinated: false,
+    imagePath: "",
+  },
+  pets: [],
+  fcmToken: "",
+  termsConfirmation: {
+    accepted: false,
+    acceptedAt: null,
+  },
+  createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  subscription: {
+    planId: "",
+    startDate: null,
+    endDate: null,
+    isActive: false,
+  },
+  isNumberLogin: null,
+});
+
+module.exports = { getDummyUser };

@@ -1,0 +1,88 @@
+{
+  "id": "user123",
+  "email": "john@example.com",
+  "phoneNumber": "9876543210",
+  "name": "John Doe",
+  "description": "Loves dogs and cats. Regular customer.",
+  "petType": "Dog",
+  "profileImage": "https://example.com/profile.jpg",
+  "idProof": "https://example.com/id-proof.jpg",
+  "isActive": true,
+  "role": "customer",
+
+  "selectedAddress": {
+    "fullAddress": "123 Main Street, Connaught Place, Delhi",
+    "latitude": 28.61,
+    "longitude": 77.23,
+    "postalCode": "110001",
+    "city": "Delhi",
+    "state": "Delhi",
+    "country": "India",
+    "locality": "CP",
+    "landmark": "Near Metro Station",
+    "direction": "Opposite Big Mall",
+    "houseNo": "12A",
+    "tag": "home"
+  },
+
+  "addresses": [
+    {
+      "fullAddress": "123 Main Street, Connaught Place, Delhi",
+      "latitude": 28.61,
+      "longitude": 77.23,
+      "postalCode": "110001",
+      "city": "Delhi",
+      "state": "Delhi",
+      "country": "India",
+      "locality": "CP",
+      "landmark": "Near Metro Station",
+      "direction": "Opposite Big Mall",
+      "houseNo": "12A",
+      "tag": "home"
+    }
+  ],
+
+  "pet": {
+    "id": "pet001",
+    "name": "Buddy",
+    "gender": "Male",
+    "petType": "Dog",
+    "petBreedList": ["Labrador", "Retriever"],
+    "ageInMonths": 18,
+    "weightInKg": 25,
+    "aggressionLevel": "Low",
+    "isVaccinated": true,
+    "imagePath": "https://example.com/pet.jpg"
+  },
+
+  "pets": [
+    {
+      "id": "pet001",
+      "name": "Buddy",
+      "gender": "Male",
+      "petType": "Dog",
+      "petBreedList": ["Labrador", "Retriever"],
+      "ageInMonths": 18,
+      "weightInKg": 25,
+      "aggressionLevel": "Low",
+      "isVaccinated": true,
+      "imagePath": "https://example.com/pet.jpg"
+    }
+  ],
+
+  "fcmToken": "dummy-fcm-token-123",
+  "termsConfirmation": {
+    "accepted": true,
+    "acceptedAt": "2025-09-23T10:00:00.000Z"
+  },
+  "createdAt": "2025-09-23T10:00:00.000Z",
+
+  "subscription": {
+    "planId": "basic_plan_001",
+    "startDate": "2025-09-23T10:00:00.000Z",
+    "endDate": "2026-09-23T10:00:00.000Z",
+    "isActive": true
+  },
+
+  "isNumberLogin": true
+}
