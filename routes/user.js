@@ -1,7 +1,10 @@
+const express = require("express");
+const router = express.Router();
 const { db } = require("../config/firebase");
 const { getDummyUser } = require("../models/userModel");
 
-exports.checkUser = async (req, res) => {
+// --- Controllers ---
+const checkUser = async (req, res) => {
   try {
     const { doc_id } = req.params;
     const userRef = db.collection("users").doc(doc_id);
@@ -20,7 +23,6 @@ exports.checkUser = async (req, res) => {
 
     const userData = userDoc.data();
 
-    // Required fields check
     const requiredFields = ["email", "phoneNumber", "name", "description"];
     for (let field of requiredFields) {
       if (!userData[field]) {
@@ -32,7 +34,6 @@ exports.checkUser = async (req, res) => {
       }
     }
 
-    // Check addresses
     if (!Array.isArray(userData.addresses) || userData.addresses.length === 0) {
       return res.status(200).json({
         success: false,
@@ -56,7 +57,7 @@ exports.checkUser = async (req, res) => {
   }
 };
 
-exports.upsertUser = async (req, res) => {
+const upsertUser = async (req, res) => {
   try {
     const userData = req.body;
     const docId = userData.id;
@@ -95,3 +96,9 @@ exports.upsertUser = async (req, res) => {
     });
   }
 };
+
+// --- Routes ---
+router.get("/:doc_id", checkUser);   // GET /api/users/:doc_id
+router.post("/upsert", upsertUser);  // POST /api/users/upsert
+
+module.exports = router;
