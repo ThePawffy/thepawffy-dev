@@ -4,15 +4,21 @@ const {
   createLostPetReport,
   getLostPetReports,
   getLostPetReportById,
+  updateLostPetReport,
+  deleteLostPetReport,
 } = require("../controllers/lostPetController");
 
-// POST new lost pet report
+// CREATE
 router.post("/report", createLostPetReport);
 
-// GET all lost pet reports
+// READ
 router.get("/reports", getLostPetReports);
-
-// GET a single lost pet report by ID
 router.get("/report/:id", getLostPetReportById);
+
+// UPDATE
+router.put("/report/:id", updateLostPetReport);
+
+// DELETE
+router.delete("/report/:id", deleteLostPetReport);
 
 module.exports = router;
