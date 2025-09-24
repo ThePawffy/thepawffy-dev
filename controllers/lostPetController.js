@@ -1,40 +1,46 @@
 const { db } = require("../config/firebase");
+const { lostPetSchema } = require("../models/lostPetModel");
 
-// Controller to create lost pet report
+// ✅ CREATE Lost Pet Report
 exports.createLostPetReport = async (req, res, next) => {
   try {
-    const data = req.body;
+    const { error, value } = lostPetSchema.validate(req.body, { abortEarly: false });
 
-    // Add createdAt if not provided
-    if (!data.createdAt) {
-      data.createdAt = new Date().toISOString();
+    if (error) {
+      return res.status(400).json({
+        message: "Validation Error",
+        details: error.details.map(err => err.message),
+      });
     }
 
-    // Store in Firestore with auto-ID
-    const docRef = await db.collection("lost_report_pets").add(data);
+    if (!value.createdAt) {
+      value.createdAt = new Date().toISOString();
+    }
+
+    const docRef = await db.collection("lost_report_pets").add(value);
 
     res.status(201).json({
       message: "Lost pet report created successfully",
       docId: docRef.id,
     });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
-// Controller to fetch all lost pet reports
+// ✅ READ All Reports
 exports.getLostPetReports = async (req, res, next) => {
   try {
     const snapshot = await db.collection("lost_report_pets").get();
     const reports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     res.status(200).json(reports);
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
-// Controller to fetch single report by ID
+// ✅ READ One Report
 exports.getLostPetReportById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -45,7 +51,59 @@ exports.getLostPetReportById = async (req, res, next) => {
     }
 
     res.status(200).json({ id: doc.id, ...doc.data() });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ✅ UPDATE Report
+exports.updateLostPetReport = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Validate payload
+    const { error, value } = lostPetSchema.validate(req.body, { abortEarly: false });
+
+    if (error) {
+      return res.status(400).json({
+        message: "Validation Error",
+        details: error.details.map(err => err.message),
+      });
+    }
+
+    const docRef = db.collection("lost_report_pets").doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ message: "Lost pet report not found" });
+    }
+
+    await docRef.update(value);
+
+    res.status(200).json({
+      message: "Lost pet report updated successfully",
+      id,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ✅ DELETE Report
+exports.deleteLostPetReport = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const docRef = db.collection("lost_report_pets").doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ message: "Lost pet report not found" });
+    }
+
+    await docRef.delete();
+
+    res.status(200).json({ message: "Lost pet report deleted successfully", id });
+  } catch (err) {
+    next(err);
   }
 };
