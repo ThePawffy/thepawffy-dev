@@ -7,8 +7,11 @@ const locationSchema = Joi.object({
   address: Joi.string().required(),
 });
 
-const foundPetSchema = Joi.object({
-  images: Joi.array().items(Joi.string().uri()).length(3).required()
+const createFoundPetSchema = Joi.object({
+  images: Joi.array()
+    .items(Joi.string().uri())
+    .length(3)
+    .required()
     .messages({ "array.length": "Exactly 3 image URLs are required." }),
   color: Joi.string().trim().required(),
   breed: Joi.string().trim().required(),
@@ -17,4 +20,20 @@ const foundPetSchema = Joi.object({
   gender: Joi.string().valid("Male", "Female").required(),
 });
 
-module.exports = foundPetSchema;
+// For updates: all fields optional, but validation rules remain
+const updateFoundPetSchema = Joi.object({
+  images: Joi.array()
+    .items(Joi.string().uri())
+    .length(3)
+    .messages({ "array.length": "Exactly 3 image URLs are required." }),
+  color: Joi.string().trim(),
+  breed: Joi.string().trim(),
+  location: locationSchema,
+  description: Joi.string().trim(),
+  gender: Joi.string().valid("Male", "Female"),
+});
+
+module.exports = {
+  createFoundPetSchema,
+  updateFoundPetSchema,
+};
