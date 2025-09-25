@@ -13,7 +13,7 @@ exports.checkUser = async (req, res) => {
 
       return res.status(200).json({
         success: false,
-        message: "User not found, dummy created. Redirect to registration.",
+        message: "User not found",
         user: dummyUser,
       });
     }

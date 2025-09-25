@@ -8,7 +8,7 @@ const app = express();
 app.use(bodyParser.json());
 
 // Routes
-app.use("/api/users", userRoutes);
+app.use("/api", userRoutes);
 app.use("/api/lost-pets", lostPetRoutes);
 
 // Health Check
