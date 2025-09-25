@@ -7,8 +7,8 @@ const addressSchema = Joi.object({
   full_address: Joi.string().required(),
   houseNo: Joi.string().allow("").required(),
   landmark: Joi.string().allow("").required(),
-  latitude: Joi.number().min(-90).max(90).required(),   // ✅ safeguard added
-  longitude: Joi.number().min(-180).max(180).required(), // ✅ safeguard added
+  latitude: Joi.number().required(),
+  longitude: Joi.number().required(),
   locality: Joi.string().allow("").required(),
   postal_code: Joi.string().required(),
   state: Joi.string().required(),
@@ -76,8 +76,8 @@ const lostPetSchema = Joi.object({
   houseNo: Joi.string().allow("").required(),
   landmark: Joi.string().allow("").required(),
   locality: Joi.string().allow("").required(),
-  latitude: Joi.number().min(-90).max(90).required(),    // ✅ safeguard added
-  longitude: Joi.number().min(-180).max(180).required(), // ✅ safeguard added
+  latitude: Joi.number().required(),
+  longitude: Joi.number().required(),
   postal_code: Joi.string().required(),
   state: Joi.string().required(),
   tag: Joi.string().allow("").required(),
