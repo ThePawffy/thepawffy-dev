@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const userRoutes = require("./routes/user");
 const lostPetRoutes = require("./routes/lostPet");
 const foundPetRoutes = require("./routes/foundPet"); 
+const bookingRoutes = require('./routes/booking');
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -13,6 +14,7 @@ app.use(bodyParser.json());
 app.use("/api", userRoutes);
 app.use("/api/lost-pets", lostPetRoutes);
 app.use("/api/found-pets", foundPetRoutes); 
+app.use('/api/bookings', bookingRoutes);
 
 // Health Check
 app.get("/", (req, res) => {
