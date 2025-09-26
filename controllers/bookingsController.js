@@ -1,6 +1,6 @@
 // controllers/bookingsController.js
 const { db } = require('../config/firebase');
-const { validateBookingPayload } = require('../validators/bookingValidator');
+const { validateBookingPayload } = require('../models/bookingModel');
 
 /**
  * Helper to format API responses
