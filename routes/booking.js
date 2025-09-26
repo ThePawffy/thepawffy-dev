@@ -1,7 +1,7 @@
 // routes/bookings.js
 const express = require('express');
 const router = express.Router();
-const asyncHandler = require('../middlewares/asyncHandler');
+const asyncHandler = require('../middleware/asyncHandler');
 const bookingsController = require('../controllers/bookingsController');
 
 router.post('/', asyncHandler(bookingsController.createBooking));
