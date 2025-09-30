@@ -98,7 +98,7 @@ const upsertUser = async (req, res) => {
 };
 
 // --- Routes ---
-router.get("/:doc_id", checkUser);   // GET /api/users/:doc_id
+router.get("/check-user-exists/:doc_id", checkUser);   // GET /api/check-user-exists:doc_id
 router.post("/upsert", upsertUser);  // POST /api/users/upsert
 
 module.exports = router;
