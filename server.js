@@ -5,7 +5,7 @@ const userRoutes = require("./routes/user");
 const lostPetRoutes = require("./routes/lostPet");
 const foundPetRoutes = require("./routes/foundPet"); 
 const bookingRoutes = require("./routes/booking");
-const dashboardRoutes = require("./routes/dashboard"); // ✅ New dashboard routes
+const dashboardRoutes = require("./routes/dashboard");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -16,7 +16,7 @@ app.use("/api", userRoutes);
 app.use("/api/lost-pets", lostPetRoutes);
 app.use("/api/found-pets", foundPetRoutes); 
 app.use("/api/bookings", bookingRoutes);
-app.use("/api", dashboardRoutes); // ✅ Dashboard API
+app.use("/api", dashboardRoutes);
 
 // Health Check
 app.get("/", (req, res) => {
