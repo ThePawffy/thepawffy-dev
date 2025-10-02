@@ -1,5 +1,5 @@
 // controllers/dashboardController.js
-const admin = require("../config/firebase");
+const { admin, db } = require("../config/firebase");
 const db = admin.firestore();
 
 // Utility function to calculate distance using Haversine formula
