@@ -1,6 +1,5 @@
 // controllers/dashboardController.js
-const { admin, db } = require("../config/firebase");
-const db = admin.firestore();
+const { db } = require("../config/firebase");
 
 // Utility function to calculate distance using Haversine formula
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
