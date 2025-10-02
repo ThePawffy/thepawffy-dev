@@ -50,17 +50,27 @@ exports.dashboard = async (req, res) => {
     }
 
     // 3. Notifications by userId
-    if (id) {
-      const notificationsSnap = await db.collection("notifications").get();
-      const notifications = [];
-      notificationsSnap.forEach((doc) => {
-        const data = doc.data();
-        if (data.senderId === id || data.receiverId === id) {
-          notifications.push({ id: doc.id, ...data });
-        }
-      });
-      response.notifications = notifications;
-    }
+exports.getNotificationsById = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const snap = await db.collection("notifications").get();
+
+    const notifications = [];
+    snap.forEach((doc) => {
+      const data = doc.data();
+
+      // ✅ Only include docs where id matches senderId or receiverId
+      if (data.senderId === id || data.receiverId === id) {
+        notifications.push({ id: doc.id, ...data });
+      }
+    });
+
+    res.json(notifications); // returns only matching notifications
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
     // 4. Active categories
     const categoriesSnap = await db.collection("categories").where("status", "==", true).get();
