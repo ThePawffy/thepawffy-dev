@@ -1,6 +1,6 @@
 const Joi = require("joi");
 
-// Address schema (unchanged)
+// Address schema
 const addressSchema = Joi.object({
   fullAddress: Joi.string().allow(""),
   latitude: Joi.number().min(-90).max(90).required(),
@@ -14,20 +14,6 @@ const addressSchema = Joi.object({
   direction: Joi.string().allow(""),
   houseNo: Joi.string().allow(""),
   tag: Joi.string().allow(""),
-});
-
-// Pet schema )
-const petSchema = Joi.object({
-  id: Joi.string().allow(""),
-  name: Joi.string().allow(""),
-  gender: Joi.string().valid("male", "female", "unknown").allow(""),
-  petType: Joi.string().allow(""),
-  petBreedList: Joi.array().items(Joi.string()).default([]),
-  ageInMonths: Joi.number().min(0).default(0),
-  weightInKg: Joi.number().min(0).default(0),
-  aggressionLevel: Joi.string().allow(""),
-  isVaccinated: Joi.boolean().default(false),
-  imagePath: Joi.string().allow(""),
 });
 
 // Terms schema 
@@ -50,7 +36,6 @@ const userSchema = Joi.object({
   phoneNumber: Joi.string().allow(""),
   name: Joi.string().allow(""),
   description: Joi.string().allow(""),
-  petType: Joi.string().allow(""),
 
   profileImage: Joi.string().uri().allow("").optional(),
   dProof: Joi.string().allow("").optional(),
@@ -58,9 +43,6 @@ const userSchema = Joi.object({
 
   selectedAddress: addressSchema.optional(),
   addresses: Joi.array().items(addressSchema).optional(),
-
-  pet: petSchema.optional(),
-  pets: Joi.array().items(petSchema).optional(),
 
   fcmToken: Joi.string().allow("").optional(),
   termsConfirmation: termsSchema.optional(),
