@@ -9,9 +9,9 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in km
 }
@@ -50,26 +50,26 @@ exports.dashboard = async (req, res) => {
     }
 
     // 3. Notifications by userId
-exports.getNotificationsById = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const snap = await db.collection("notifications").get();
+    exports.getNotificationsById = async (req, res) => {
+      try {
+        const id = req.params.id;
+        const snap = await db.collection("notifications").get();
 
-    const notifications = [];
-    snap.forEach((doc) => {
-      const data = doc.data();
+        const notifications = [];
+        snap.forEach((doc) => {
+          const data = doc.data();
 
-      // ✅ Only include docs where id matches senderId or receiverId
-      if (data.senderId === id || data.receiverId === id) {
-        notifications.push({ id: doc.id, ...data });
+          // ✅ Only include docs where id matches senderId or receiverId
+          if (data.senderId === id || data.receiverId === id) {
+            notifications.push({ id: doc.id, ...data });
+          }
+        });
+
+        res.json(notifications); // returns only matching notifications
+      } catch (err) {
+        res.status(500).json({ error: err.message });
       }
-    });
-
-    res.json(notifications); // returns only matching notifications
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    };
 
 
     // 4. Active categories
