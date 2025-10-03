@@ -1,5 +1,6 @@
 // controllers/dashboardController.js
 const { db } = require("../config/firebase");
+const { getRandomPetCareQuote } = require("../utils"); // ✅ import quote function
 
 // Utility function to calculate distance using Haversine formula
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -75,13 +76,14 @@ exports.dashboard = async (req, res) => {
       }
     };
 
-
-
     // 4. Active categories
     const categoriesSnap = await db.collection("categories").where("status", "==", true).get();
     const categories = [];
     categoriesSnap.forEach((doc) => categories.push({ id: doc.id, ...doc.data() }));
     response.categories = categories;
+
+    // ✅ 5. Add random pet care quote
+    response.quote = getRandomPetCareQuote();
 
     res.json(response);
   } catch (err) {
