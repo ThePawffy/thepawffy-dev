@@ -50,26 +50,31 @@ exports.dashboard = async (req, res) => {
     }
 
     // 3. Notifications by userId
-    exports.getNotificationsById = async (req, res) => {
+    exports.getNotificationMessagesByUserId = async (req, res) => {
       try {
-        const id = req.params.id;
+        const { userId } = req.body; // expecting in body
+        if (!userId) {
+          return res.status(400).json({ error: "userId is required" });
+        }
+
         const snap = await db.collection("notifications").get();
 
-        const notifications = [];
+        const messages = [];
         snap.forEach((doc) => {
           const data = doc.data();
-
-          // ✅ Only include docs where id matches senderId or receiverId
-          if (data.senderId === id || data.receiverId === id) {
-            notifications.push({ id: doc.id, ...data });
+          if (data.senderId === userId || data.receiverId === userId) {
+            if (data.notificationMessage) {
+              messages.push({ id: doc.id, notificationMessage: data.notificationMessage });
+            }
           }
         });
 
-        res.json(notifications); // returns only matching notifications
+        res.json(messages);
       } catch (err) {
         res.status(500).json({ error: err.message });
       }
     };
+
 
 
     // 4. Active categories
