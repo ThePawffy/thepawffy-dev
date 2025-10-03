@@ -1,6 +1,6 @@
 // controllers/dashboardController.js
 const { db } = require("../config/firebase");
-const { getRandomPetCareQuote } = require("../utils/quote");
+const { getRandomPetCareQuote } = require("../utils/quotes");
 
 // Utility function to calculate distance using Haversine formula
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
