@@ -15,9 +15,9 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "http://localhost:3000",
-      "https://thepawffy-dev.onrender.com",
-      "https://pawrescue-orpin.vercel.app/",
+      "http://localhost:3000",               // Local dev
+      "https://thepawffy-dev.onrender.com",  // Optional backend render
+      "https://pawrescue-orpin.vercel.app",  // ✅ Your actual frontend
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
