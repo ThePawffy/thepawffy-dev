@@ -182,7 +182,7 @@ exports.getBanner = async (req, res) => {
       return res.status(400).json({ error: "Invalid platform. Use 'web' or 'app'." });
     }
 
-    const bannerDoc = await db.collection("banner").doc(bannerDocId).get();
+    const bannerDoc = await db.collection("banners").doc(bannerDocId).get();
 
     if (!bannerDoc.exists) {
       return res.status(404).json({ error: "Banner not found." });
