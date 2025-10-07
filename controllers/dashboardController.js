@@ -1,4 +1,3 @@
-// controllers/dashboardController.js
 const { db } = require("../config/firebase");
 const { getRandomPetCareQuote } = require("../utils/quotes");
 
@@ -71,17 +70,22 @@ exports.dashboard = async (req, res) => {
     categoriesSnap.forEach((doc) => categories.push({ id: doc.id, ...doc.data() }));
     response.categories = categories;
 
-    // 5️⃣ Banner based on platform (web/app)
-    const bannerDocId =
-      platform?.toLowerCase() === "web"
-        ? "KhiXv3IDx4u7mnL3RSeE"
-        : platform?.toLowerCase() === "app"
-        ? "P0uyKC5H4G2erc2JiNeW"
-        : null;
+    // 5️⃣ Dynamic banner based on platform (no hardcoded IDs)
+    if (platform) {
+      const bannersSnap = await db.collection("banners").get();
+      let banner = null;
 
-    if (bannerDocId) {
-      const bannerDoc = await db.collection("banner").doc(bannerDocId).get();
-      response.banner = bannerDoc.exists ? bannerDoc.data() : null;
+      bannersSnap.forEach((doc) => {
+        const data = doc.data();
+        if (
+          (platform.toLowerCase() === "web" && data.banner_web) ||
+          (platform.toLowerCase() === "app" && data.banner_app)
+        ) {
+          banner = { id: doc.id, ...data };
+        }
+      });
+
+      response.banner = banner;
     } else {
       response.banner = null;
     }
@@ -171,24 +175,24 @@ exports.getBanner = async (req, res) => {
       return res.status(400).json({ error: "Platform is required (web/app)" });
     }
 
-    const bannerDocId =
-      platform.toLowerCase() === "web"
-        ? "KhiXv3IDx4u7mnL3RSeE"
-        : platform.toLowerCase() === "app"
-        ? "P0uyKC5H4G2erc2JiNeW"
-        : null;
+    const bannersSnap = await db.collection("banners").get();
+    let banner = null;
 
-    if (!bannerDocId) {
-      return res.status(400).json({ error: "Invalid platform. Use 'web' or 'app'." });
-    }
+    bannersSnap.forEach((doc) => {
+      const data = doc.data();
+      if (
+        (platform.toLowerCase() === "web" && data.banner_web) ||
+        (platform.toLowerCase() === "app" && data.banner_app)
+      ) {
+        banner = { id: doc.id, ...data };
+      }
+    });
 
-    const bannerDoc = await db.collection("banners").doc(bannerDocId).get();
-
-    if (!bannerDoc.exists) {
+    if (!banner) {
       return res.status(404).json({ error: "Banner not found." });
     }
 
-    res.status(200).json(bannerDoc.data());
+    res.status(200).json(banner);
   } catch (err) {
     console.error("Error fetching banner:", err);
     res.status(500).json({ error: err.message });
