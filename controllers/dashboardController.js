@@ -20,7 +20,7 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 // ✅ Combined Dashboard API
 exports.dashboard = async (req, res) => {
   try {
-    const { userId, latitude, longitude } = req.body;
+    const { userId, latitude, longitude, platform } = req.body; // 👈 Added platform param
     const response = {};
 
     // 1️⃣ Get user by ID
@@ -71,7 +71,26 @@ exports.dashboard = async (req, res) => {
     categoriesSnap.forEach((doc) => categories.push({ id: doc.id, ...doc.data() }));
     response.categories = categories;
 
-    // 5️⃣ Add random pet care quote
+    // 5️⃣ Add banner data (check for app/web)
+    if (platform) {
+      const bannerDocId =
+        platform.toLowerCase() === "web"
+          ? "KhiXv3IDx4u7mnL3RSeE"
+          : platform.toLowerCase() === "app"
+          ? "P0uyKC5H4G2erc2JiNeW"
+          : null;
+
+      if (bannerDocId) {
+        const bannerDoc = await db.collection("banner").doc(bannerDocId).get();
+        response.banner = bannerDoc.exists ? bannerDoc.data() : null;
+      } else {
+        response.banner = null;
+      }
+    } else {
+      response.banner = null;
+    }
+
+    // 6️⃣ Add random pet care quote
     response.quote = getRandomPetCareQuote();
 
     res.status(200).json(response);
