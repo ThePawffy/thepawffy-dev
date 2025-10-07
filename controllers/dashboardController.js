@@ -14,22 +14,22 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Distance in km
+  return R * c;
 }
 
 // ✅ Combined Dashboard API
 exports.dashboard = async (req, res) => {
   try {
-    const { userId, latitude, longitude, platform } = req.body; // 👈 Added platform param
+    const { userId, latitude, longitude, platform } = req.body;
     const response = {};
 
-    // 1️⃣ Get user by ID
+    // 1️⃣ User info
     if (userId) {
       const userDoc = await db.collection("users").doc(userId).get();
       response.user = userDoc.exists ? userDoc.data() : null;
     }
 
-    // 2️⃣ Get partners within 25 km
+    // 2️⃣ Partners nearby (within 25 km)
     if (latitude && longitude) {
       const usersSnap = await db.collection("users").where("role", "==", "partner").get();
       const partnersNearby = [];
@@ -50,7 +50,7 @@ exports.dashboard = async (req, res) => {
       response.partnersNearby = partnersNearby;
     }
 
-    // 3️⃣ Notifications by userId
+    // 3️⃣ Notifications
     if (userId) {
       const snap = await db.collection("notifications").get();
       const messages = [];
@@ -71,26 +71,22 @@ exports.dashboard = async (req, res) => {
     categoriesSnap.forEach((doc) => categories.push({ id: doc.id, ...doc.data() }));
     response.categories = categories;
 
-    // 5️⃣ Add banner data (check for app/web)
-    if (platform) {
-      const bannerDocId =
-        platform.toLowerCase() === "web"
-          ? "KhiXv3IDx4u7mnL3RSeE"
-          : platform.toLowerCase() === "app"
-          ? "P0uyKC5H4G2erc2JiNeW"
-          : null;
+    // 5️⃣ Banner based on platform (web/app)
+    const bannerDocId =
+      platform?.toLowerCase() === "web"
+        ? "KhiXv3IDx4u7mnL3RSeE"
+        : platform?.toLowerCase() === "app"
+        ? "P0uyKC5H4G2erc2JiNeW"
+        : null;
 
-      if (bannerDocId) {
-        const bannerDoc = await db.collection("banner").doc(bannerDocId).get();
-        response.banner = bannerDoc.exists ? bannerDoc.data() : null;
-      } else {
-        response.banner = null;
-      }
+    if (bannerDocId) {
+      const bannerDoc = await db.collection("banner").doc(bannerDocId).get();
+      response.banner = bannerDoc.exists ? bannerDoc.data() : null;
     } else {
       response.banner = null;
     }
 
-    // 6️⃣ Add random pet care quote
+    // 6️⃣ Random pet care quote
     response.quote = getRandomPetCareQuote();
 
     res.status(200).json(response);
@@ -100,7 +96,7 @@ exports.dashboard = async (req, res) => {
   }
 };
 
-// ✅ Separate APIs
+// ✅ Get user by ID
 exports.getUserById = async (req, res) => {
   try {
     const doc = await db.collection("users").doc(req.params.id).get();
@@ -110,6 +106,7 @@ exports.getUserById = async (req, res) => {
   }
 };
 
+// ✅ Get partners nearby
 exports.getPartnersNearby = async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
@@ -135,6 +132,7 @@ exports.getPartnersNearby = async (req, res) => {
   }
 };
 
+// ✅ Get notifications by userId
 exports.getNotificationsById = async (req, res) => {
   try {
     const id = req.params.id;
@@ -152,6 +150,7 @@ exports.getNotificationsById = async (req, res) => {
   }
 };
 
+// ✅ Get active categories
 exports.getActiveCategories = async (req, res) => {
   try {
     const snap = await db.collection("categories").where("status", "==", true).get();
@@ -159,6 +158,39 @@ exports.getActiveCategories = async (req, res) => {
     snap.forEach((doc) => categories.push({ id: doc.id, ...doc.data() }));
     res.json(categories);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ✅ Get banner by platform (web/app)
+exports.getBanner = async (req, res) => {
+  try {
+    const { platform } = req.query;
+
+    if (!platform) {
+      return res.status(400).json({ error: "Platform is required (web/app)" });
+    }
+
+    const bannerDocId =
+      platform.toLowerCase() === "web"
+        ? "KhiXv3IDx4u7mnL3RSeE"
+        : platform.toLowerCase() === "app"
+        ? "P0uyKC5H4G2erc2JiNeW"
+        : null;
+
+    if (!bannerDocId) {
+      return res.status(400).json({ error: "Invalid platform. Use 'web' or 'app'." });
+    }
+
+    const bannerDoc = await db.collection("banner").doc(bannerDocId).get();
+
+    if (!bannerDoc.exists) {
+      return res.status(404).json({ error: "Banner not found." });
+    }
+
+    res.status(200).json(bannerDoc.data());
+  } catch (err) {
+    console.error("Error fetching banner:", err);
     res.status(500).json({ error: err.message });
   }
 };
