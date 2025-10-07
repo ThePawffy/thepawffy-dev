@@ -173,9 +173,9 @@ exports.getBanner = async (req, res) => {
 
     const bannerDocId =
       platform.toLowerCase() === "web"
-        ? "KhiXv3IDx4u7mnL3RSeE"
+        ? "banner_web"
         : platform.toLowerCase() === "app"
-        ? "P0uyKC5H4G2erc2JiNeW"
+        ? "baneer_app"
         : null;
 
     if (!bannerDocId) {
