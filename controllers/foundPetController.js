@@ -16,24 +16,40 @@ exports.createFoundPet = async (req, res) => {
       });
     }
 
+    // Create new document reference
+    const docRef = db.collection(COLLECTION).doc();
+
     const dataToSave = {
       ...value,
+      userId: req.body.userId, // ✅ userId comes from request body
+      postType: "Found",       // ✅ always fixed
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    const docRef = await db.collection(COLLECTION).add(dataToSave);
+    // Save data in Firestore
+    await docRef.set(dataToSave);
+
+    // Fetch the created document
     const createdDoc = await docRef.get();
 
     return res.status(201).json({
       status: 201,
       message: "Found pet reported successfully",
-      data: { id: docRef.id, ...createdDoc.data() },
+      data: {
+        id: docRef.id,
+        ...createdDoc.data(),
+      },
     });
   } catch (err) {
     console.error("createFoundPet error:", err);
-    return res.status(500).json({ status: 500, message: "Internal server error", error: err.message });
+    return res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: err.message,
+    });
   }
 };
+
 
 // READ all found pets
 exports.getAllFoundPets = async (req, res) => {
