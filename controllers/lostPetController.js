@@ -1,154 +1,142 @@
-const { createLostPetSchema, updateLostPetSchema } = require("../models/lostPetModel");
-const { db, admin } = require("../config/firebase");
+// controllers/lostPetController.js
+const { db } = require("../config/firebase");
+const { lostPetSchema } = require("../models/lostPetModel");
 
-const COLLECTION = "reports";
-
-// CREATE a lost pet
-exports.createLostPet = async (req, res) => {
+// ✅ CREATE Lost Pet Report
+exports.createLostPetReport = async (req, res, next) => {
   try {
-    const { error, value } = createLostPetSchema.validate(req.body, { abortEarly: false });
+    const { error, value } = lostPetSchema.validate(req.body, { abortEarly: false });
+
     if (error) {
       return res.status(400).json({
-        status: 400,
-        message: "Validation error",
-        details: error.details.map(d => d.message),
+        success: false,
+        message: "Validation Error",
+        details: error.details.map(err => err.message),
       });
     }
 
-    const docRef = db.collection(COLLECTION).doc();
+    // Set creation timestamp if not provided
+    value.createdAt = value.createdAt || new Date().toISOString();
 
-    const dataToSave = {
-      ...value,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
+    // Save to Firestore
+    const docRef = await db.collection("lost_report_pets").add(value);
 
-    await docRef.set(dataToSave);
-    const createdDoc = await docRef.get();
-
-    return res.status(201).json({
-      status: 201,
-      message: "Lost pet reported successfully",
-      data: { id: docRef.id, ...createdDoc.data() },
+    res.status(201).json({
+      success: true,
+      message: "Lost pet report created successfully",
+      id: docRef.id,
     });
   } catch (err) {
-    console.error("createLostPet error:", err);
-    return res.status(500).json({
-      status: 500,
-      message: "Internal server error",
-      error: err.message,
-    });
+    console.error("Error creating lost pet report:", err);
+    next(err);
   }
 };
 
-// READ all lost pets
-exports.getAllLostPets = async (req, res) => {
+// ✅ READ All Lost Pet Reports
+exports.getLostPetReports = async (req, res, next) => {
   try {
-    const snapshot = await db.collection(COLLECTION).orderBy("createdAt", "desc").get();
-    const pets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const snapshot = await db.collection("lost_report_pets").get();
 
-    return res.status(200).json({
-      status: 200,
-      message: "Lost pets fetched successfully",
-      data: pets,
+    const reports = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: reports.length,
+      data: reports,
     });
   } catch (err) {
-    console.error("getAllLostPets error:", err);
-    return res.status(500).json({
-      status: 500,
-      message: "Internal server error",
-      error: err.message,
-    });
+    console.error("Error fetching lost pet reports:", err);
+    next(err);
   }
 };
 
-// READ one lost pet
-exports.getLostPetById = async (req, res) => {
+// ✅ READ One Lost Pet Report by ID
+exports.getLostPetReportById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const doc = await db.collection(COLLECTION).doc(id).get();
+    const doc = await db.collection("lost_report_pets").doc(id).get();
 
     if (!doc.exists) {
-      return res.status(404).json({ status: 404, message: "Lost pet not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Lost pet report not found",
+      });
     }
 
-    return res.status(200).json({
-      status: 200,
-      message: "Lost pet fetched successfully",
+    res.status(200).json({
+      success: true,
       data: { id: doc.id, ...doc.data() },
     });
   } catch (err) {
-    console.error("getLostPetById error:", err);
-    return res.status(500).json({
-      status: 500,
-      message: "Internal server error",
-      error: err.message,
-    });
+    console.error("Error fetching lost pet report:", err);
+    next(err);
   }
 };
 
-// UPDATE a lost pet
-exports.updateLostPet = async (req, res) => {
+// ✅ UPDATE Lost Pet Report
+exports.updateLostPetReport = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { error, value } = updateLostPetSchema.validate(req.body, { abortEarly: false });
 
+    // Validate payload
+    const { error, value } = lostPetSchema.validate(req.body, { abortEarly: false });
     if (error) {
       return res.status(400).json({
-        status: 400,
-        message: "Validation error",
-        details: error.details.map(d => d.message),
+        success: false,
+        message: "Validation Error",
+        details: error.details.map(err => err.message),
       });
     }
 
-    const docRef = db.collection(COLLECTION).doc(id);
+    const docRef = db.collection("lost_report_pets").doc(id);
     const doc = await docRef.get();
 
     if (!doc.exists) {
-      return res.status(404).json({ status: 404, message: "Lost pet not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Lost pet report not found",
+      });
     }
 
-    await docRef.update({ ...value, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-    const updatedDoc = await docRef.get();
+    await docRef.update(value);
 
-    return res.status(200).json({
-      status: 200,
-      message: "Lost pet updated successfully",
-      data: { id: updatedDoc.id, ...updatedDoc.data() },
+    res.status(200).json({
+      success: true,
+      message: "Lost pet report updated successfully",
+      id,
     });
   } catch (err) {
-    console.error("updateLostPet error:", err);
-    return res.status(500).json({
-      status: 500,
-      message: "Internal server error",
-      error: err.message,
-    });
+    console.error("Error updating lost pet report:", err);
+    next(err);
   }
 };
 
-// DELETE a lost pet
-exports.deleteLostPet = async (req, res) => {
+// ✅ DELETE Lost Pet Report
+exports.deleteLostPetReport = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const docRef = db.collection(COLLECTION).doc(id);
+    const docRef = db.collection("lost_report_pets").doc(id);
     const doc = await docRef.get();
 
     if (!doc.exists) {
-      return res.status(404).json({ status: 404, message: "Lost pet not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Lost pet report not found",
+      });
     }
 
     await docRef.delete();
 
-    return res.status(200).json({
-      status: 200,
-      message: "Lost pet deleted successfully",
+    res.status(200).json({
+      success: true,
+      message: "Lost pet report deleted successfully",
       id,
     });
   } catch (err) {
-    console.error("deleteLostPet error:", err);
-    return res.status(500).json({
-      status: 500,
-      message: "Internal server error",
-      error: err.message,
-    });
+    console.error("Error deleting lost pet report:", err);
+    next(err);
   }
 };
