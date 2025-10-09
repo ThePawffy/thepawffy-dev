@@ -17,7 +17,7 @@ const createFoundPetSchema = Joi.object({
   breed: Joi.string().trim().required(),
   location: locationSchema.required(),
   description: Joi.string().trim().required(),
-  gender: Joi.string().valid("Male", "Female").required(),
+  gender: Joi.string().valid("Male", "Female", "Prefer Not to Say").required(),
   userId: Joi.string().required(), // ✅ userId sent by client
   postType: Joi.string().valid("Found").required(), // ✅ must always be 'Found'
 });
