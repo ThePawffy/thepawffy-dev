@@ -17,7 +17,7 @@ exports.createLostPetReport = async (req, res, next) => {
       value.createdAt = new Date().toISOString();
     }
 
-    const docRef = await db.collection("lost_report_pets").add(value);
+    const docRef = await db.collection("reports").add(value);
 
     res.status(201).json({
       message: "Lost pet report created successfully",
@@ -31,7 +31,7 @@ exports.createLostPetReport = async (req, res, next) => {
 // ✅ READ All Reports
 exports.getLostPetReports = async (req, res, next) => {
   try {
-    const snapshot = await db.collection("lost_report_pets").get();
+    const snapshot = await db.collection("reports").get();
     const reports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     res.status(200).json(reports);
@@ -44,7 +44,7 @@ exports.getLostPetReports = async (req, res, next) => {
 exports.getLostPetReportById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const doc = await db.collection("lost_report_pets").doc(id).get();
+    const doc = await db.collection("reports").doc(id).get();
 
     if (!doc.exists) {
       return res.status(404).json({ message: "Lost pet report not found" });
@@ -71,7 +71,7 @@ exports.updateLostPetReport = async (req, res, next) => {
       });
     }
 
-    const docRef = db.collection("lost_report_pets").doc(id);
+    const docRef = db.collection("reports").doc(id);
     const doc = await docRef.get();
 
     if (!doc.exists) {
@@ -93,7 +93,7 @@ exports.updateLostPetReport = async (req, res, next) => {
 exports.deleteLostPetReport = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const docRef = db.collection("lost_report_pets").doc(id);
+    const docRef = db.collection("reports").doc(id);
     const doc = await docRef.get();
 
     if (!doc.exists) {

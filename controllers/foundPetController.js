@@ -2,7 +2,7 @@
 const { createFoundPetSchema, updateFoundPetSchema } = require("../models/foundPetModel");
 const { db, admin } = require("../config/firebase");
 
-const COLLECTION = "found_pets";
+const COLLECTION = "reports";
 
 // CREATE a found pet
 exports.createFoundPet = async (req, res) => {

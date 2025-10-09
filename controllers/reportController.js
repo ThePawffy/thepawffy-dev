@@ -4,13 +4,13 @@ const asyncHandler = require("../middleware/asyncHandler");
 // Combined API for Lost and Found pets
 exports.getAllReports = asyncHandler(async (req, res) => {
   try {
-    const collectionRef = db.collection("lost_report_pets");
+    const collectionRef = db.collection("reports");
     const snapshot = await collectionRef.get();
 
     if (snapshot.empty) {
       return res.status(404).json({
         status: false,
-        message: "No documents found in lost_report_pets collection",
+        message: "No documents found in reports collection",
       });
     }
 
