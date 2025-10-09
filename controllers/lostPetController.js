@@ -1,4 +1,3 @@
-// controllers/lostPetController.js
 const { db } = require("../config/firebase");
 const { lostPetSchema } = require("../models/lostPetModel");
 
@@ -15,16 +14,20 @@ exports.createLostPetReport = async (req, res, next) => {
       });
     }
 
-    // Set creation timestamp if not provided
+    // Add creation timestamp
     value.createdAt = value.createdAt || new Date().toISOString();
 
-    // Save to Firestore
+    // Add to Firestore
     const docRef = await db.collection("reports").add(value);
+
+    // Fetch saved document data
+    const createdDoc = await docRef.get();
+    const data = { id: docRef.id, ...createdDoc.data() };
 
     res.status(201).json({
       success: true,
       message: "Lost pet report created successfully",
-      id: docRef.id,
+      data,
     });
   } catch (err) {
     console.error("Error creating lost pet report:", err);
@@ -36,7 +39,6 @@ exports.createLostPetReport = async (req, res, next) => {
 exports.getLostPetReports = async (req, res, next) => {
   try {
     const snapshot = await db.collection("reports").get();
-
     const reports = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -80,9 +82,8 @@ exports.getLostPetReportById = async (req, res, next) => {
 exports.updateLostPetReport = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    // Validate payload
     const { error, value } = lostPetSchema.validate(req.body, { abortEarly: false });
+
     if (error) {
       return res.status(400).json({
         success: false,
@@ -102,11 +103,12 @@ exports.updateLostPetReport = async (req, res, next) => {
     }
 
     await docRef.update(value);
+    const updatedDoc = await docRef.get();
 
     res.status(200).json({
       success: true,
       message: "Lost pet report updated successfully",
-      id,
+      data: { id: docRef.id, ...updatedDoc.data() },
     });
   } catch (err) {
     console.error("Error updating lost pet report:", err);
@@ -128,12 +130,13 @@ exports.deleteLostPetReport = async (req, res, next) => {
       });
     }
 
+    const deletedData = { id: doc.id, ...doc.data() };
     await docRef.delete();
 
     res.status(200).json({
       success: true,
       message: "Lost pet report deleted successfully",
-      id,
+      data: deletedData, // ✅ return deleted data
     });
   } catch (err) {
     console.error("Error deleting lost pet report:", err);
