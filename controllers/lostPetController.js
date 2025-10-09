@@ -118,7 +118,7 @@ exports.updateLostPetReport = async (req, res, next) => {
 exports.deleteLostPetReport = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const docRef = db.collection("report").doc(id);
+    const docRef = db.collection("reports").doc(id);
     const doc = await docRef.get();
 
     if (!doc.exists) {
