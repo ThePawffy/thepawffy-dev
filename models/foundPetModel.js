@@ -39,7 +39,7 @@ const updateFoundPetSchema = Joi.object({
   breed: Joi.string().trim(),
   location: locationSchema,
   description: Joi.string().trim(),
-  gender: Joi.string().valid("Male", "Female"),
+  gender: Joi.string().valid("Male", "Female", "Prefer Not to Say"),
   userId: Joi.string(),
   postType: Joi.string().valid("Found"),
 });
