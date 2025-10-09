@@ -21,12 +21,10 @@ exports.createFoundPet = async (req, res) => {
 
     const dataToSave = {
       ...value,
-      userId: req.body.userId, // ✅ userId comes from request body
-      postType: "Found",       // ✅ always fixed
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Save data in Firestore
+    // Save to Firestore
     await docRef.set(dataToSave);
 
     // Fetch the created document
@@ -49,6 +47,7 @@ exports.createFoundPet = async (req, res) => {
     });
   }
 };
+
 
 
 // READ all found pets

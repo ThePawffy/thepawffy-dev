@@ -18,6 +18,8 @@ const createFoundPetSchema = Joi.object({
   location: locationSchema.required(),
   description: Joi.string().trim().required(),
   gender: Joi.string().valid("Male", "Female").required(),
+  userId: Joi.string().required(), // ✅ userId sent by client
+  postType: Joi.string().valid("Found").required(), // ✅ must always be 'Found'
 });
 
 // For updates: all fields optional, but validation rules remain
