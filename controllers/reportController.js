@@ -19,9 +19,9 @@ exports.getAllReports = asyncHandler(async (req, res) => {
 
     snapshot.forEach((doc) => {
       const data = doc.data();
-      if (data.typeOfPost === "Lost") {
+      if (data.postType === "Lost") {
         lostPets.push({ id: doc.id, ...data });
-      } else if (data.typeOfPost === "Found") {
+      } else if (data.postType === "Found") {
         foundPets.push({ id: doc.id, ...data });
       }
     });
