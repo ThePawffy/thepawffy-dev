@@ -104,7 +104,7 @@ const upsertUser = async (req, res) => {
   }
 };
 
-// 🔹 Fetch address and selectedAddress by ID
+// 🔹 Fetch addresses and selectedAddress by ID
 const getUserAddress = async (req, res) => {
   try {
     const { id } = req.body;
@@ -128,17 +128,17 @@ const getUserAddress = async (req, res) => {
 
     const userData = userDoc.data();
     const response = {
-      address: userData.address || null,
+      addresses: userData.addresses || [],
       selectedAddress: userData.selectedAddress || null,
     };
 
     return res.status(200).json({
       success: true,
-      message: "User address fetched successfully",
+      message: "User addresses fetched successfully",
       data: response,
     });
   } catch (error) {
-    console.error("Error fetching user address:", error);
+    console.error("Error fetching user addresses:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -152,6 +152,6 @@ const getUserAddress = async (req, res) => {
 // ----------------------
 router.get("/check-user-exists/:doc_id", checkUser);   // GET /api/user/check-user-exists/:doc_id
 router.post("/upsert", upsertUser);                    // POST /api/user/upsert
-router.post("/get-address", getUserAddress);        // POST /api/user/getUserAddress
+router.post("/get-addresses", getUserAddress);      // POST /api/user/getUserAddresses
 
 module.exports = router;
