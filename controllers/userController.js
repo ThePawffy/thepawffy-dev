@@ -124,7 +124,7 @@ exports.getUserAddress = async (req, res) => {
 
     // extract only required fields
     const response = {
-      address: userData.addresses  || null,
+      addresses: userData.addresses  || null,
       selectedAddress: userData.selectedAddress || null,
     };
 
@@ -134,7 +134,7 @@ exports.getUserAddress = async (req, res) => {
       data: response,
     });
   } catch (error) {
-    console.error("Error fetching user address:", error);
+    console.error("Error fetching user addresses:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
