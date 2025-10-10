@@ -9,7 +9,7 @@ const {
 } = require("../controllers/lostPetController");
 
 // CREATE
-router.post("/report", createLostPetReport);
+router.post("/", createLostPetReport);
 
 // READ
 router.get("/reports", getLostPetReports);
