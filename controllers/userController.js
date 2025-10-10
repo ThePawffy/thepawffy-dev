@@ -1,6 +1,7 @@
 const { db } = require("../config/firebase");
 const { getDummyUser } = require("../models/userModel");
 
+// ✅ CHECK USER STATUS OR CREATE DUMMY
 exports.checkUser = async (req, res) => {
   try {
     const { doc_id } = req.params;
@@ -20,7 +21,7 @@ exports.checkUser = async (req, res) => {
 
     const userData = userDoc.data();
 
-    // Required fields check
+    // ✅ Required fields check
     const requiredFields = ["email", "phoneNumber", "name", "description"];
     for (let field of requiredFields) {
       if (!userData[field]) {
@@ -32,7 +33,7 @@ exports.checkUser = async (req, res) => {
       }
     }
 
-    // Check addresses
+    // ✅ Check addresses
     if (!Array.isArray(userData.addresses) || userData.addresses.length === 0) {
       return res.status(200).json({
         success: false,
@@ -56,6 +57,7 @@ exports.checkUser = async (req, res) => {
   }
 };
 
+// ✅ UPSERT USER DATA
 exports.upsertUser = async (req, res) => {
   try {
     const userData = req.body;
@@ -91,6 +93,51 @@ exports.upsertUser = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Something went wrong",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ NEW FUNCTION: Get address and selectedAddress by user ID
+exports.getUserAddress = async (req, res) => {
+  try {
+    const { id } = req.body; // taking ID from request body
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const userRef = db.collection("users").doc(id);
+    const doc = await userRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userData = doc.data();
+
+    // extract only required fields
+    const response = {
+      address: userData.address || null,
+      selectedAddress: userData.selectedAddress || null,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "User address fetched successfully",
+      data: response,
+    });
+  } catch (error) {
+    console.error("Error fetching user address:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
       error: error.message,
     });
   }
