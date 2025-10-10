@@ -124,7 +124,7 @@ exports.getUserAddress = async (req, res) => {
 
     // extract only required fields
     const response = {
-      address: userData.address || null,
+      address: userData.addresses  || null,
       selectedAddress: userData.selectedAddress || null,
     };
 
