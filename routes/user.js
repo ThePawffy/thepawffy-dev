@@ -3,7 +3,11 @@ const router = express.Router();
 const { db } = require("../config/firebase");
 const { getDummyUser } = require("../models/userModel");
 
-// --- Controllers ---
+// ----------------------
+// ✅ CONTROLLERS
+// ----------------------
+
+// 🔹 Check if user exists, else create dummy user
 const checkUser = async (req, res) => {
   try {
     const { doc_id } = req.params;
@@ -23,6 +27,7 @@ const checkUser = async (req, res) => {
 
     const userData = userDoc.data();
 
+    // Required field validation
     const requiredFields = ["email", "phoneNumber", "name", "description"];
     for (let field of requiredFields) {
       if (!userData[field]) {
@@ -34,6 +39,7 @@ const checkUser = async (req, res) => {
       }
     }
 
+    // Address validation
     if (!Array.isArray(userData.addresses) || userData.addresses.length === 0) {
       return res.status(200).json({
         success: false,
@@ -57,6 +63,7 @@ const checkUser = async (req, res) => {
   }
 };
 
+// 🔹 Create or update user (upsert)
 const upsertUser = async (req, res) => {
   try {
     const userData = req.body;
@@ -97,8 +104,54 @@ const upsertUser = async (req, res) => {
   }
 };
 
-// --- Routes ---
-router.get("/check-user-exists/:doc_id", checkUser);   // GET /api/check-user-exists:doc_id
-router.post("/upsert", upsertUser);  // POST /api/users/upsert
+// 🔹 Fetch address and selectedAddress by ID
+const getUserAddress = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const userRef = db.collection("users").doc(id);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userData = userDoc.data();
+    const response = {
+      address: userData.address || null,
+      selectedAddress: userData.selectedAddress || null,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "User address fetched successfully",
+      data: response,
+    });
+  } catch (error) {
+    console.error("Error fetching user address:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+// ----------------------
+// ✅ ROUTES
+// ----------------------
+router.get("/check-user-exists/:doc_id", checkUser);   // GET /api/user/check-user-exists/:doc_id
+router.post("/upsert", upsertUser);                    // POST /api/user/upsert
+router.post("/get-address", getUserAddress);        // POST /api/user/getUserAddress
 
 module.exports = router;
