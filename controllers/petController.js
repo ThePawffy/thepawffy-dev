@@ -1,6 +1,5 @@
 // controllers/petController.js
 const { db } = require("../config/firebase");
-const petModel = require("../models/petModel");
 
 exports.createPet = async (req, res) => {
   try {
@@ -18,69 +17,65 @@ exports.createPet = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Combine user data with pet data
-    const userData = userSnap.data();
-    const petData = {
-      userId,
-      added_pets,
-      ownerInfo: {
-        name: userData.name || "",
-        email: userData.email || "",
-        phone: userData.phone || "",
-      },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    // Check if a document already exists in "pets" for this user
+    const petsQuery = await db.collection("pets").where("userId", "==", userId).get();
 
-    const newPet = await petModel.createPet(petData);
+    // Assign unique IDs to each pet
+    const petsWithIds = Array.isArray(added_pets)
+      ? added_pets.map((pet) => ({
+          ...pet,
+          petId: db.collection("pets").doc().id,
+          createdAt: new Date(),
+        }))
+      : [
+          {
+            ...added_pets,
+            petId: db.collection("pets").doc().id,
+            createdAt: new Date(),
+          },
+        ];
+
+    let petDocRef;
+    let updatedData;
+
+    if (!petsQuery.empty) {
+      // If user already has a document, append new pets
+      petDocRef = petsQuery.docs[0].ref;
+      const existingData = petsQuery.docs[0].data();
+
+      updatedData = {
+        ...existingData,
+        added_pets: [...(existingData.added_pets || []), ...petsWithIds],
+        updatedAt: new Date(),
+      };
+
+      await petDocRef.update(updatedData);
+    } else {
+      // Otherwise, create a new document for this user
+      const newDocRef = db.collection("pets").doc();
+      updatedData = {
+        id: newDocRef.id,
+        userId,
+        added_pets: petsWithIds,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await newDocRef.set(updatedData);
+      petDocRef = newDocRef;
+    }
 
     res.status(201).json({
       success: true,
-      message: "Pet added successfully",
-      data: newPet,
+      message: "Pet(s) added successfully",
+      data: { id: petDocRef.id, ...updatedData },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
-  }
-};
-
-exports.getAllPets = async (req, res) => {
-  try {
-    const pets = await petModel.getAllPets();
-    res.status(200).json({ success: true, data: pets });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.getPetById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const pet = await petModel.getPetById(id);
-    if (!pet) return res.status(404).json({ success: false, message: "Pet not found" });
-    res.status(200).json({ success: true, data: pet });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.updatePet = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updatedData = req.body;
-    const pet = await petModel.updatePet(id, updatedData);
-    res.status(200).json({ success: true, data: pet });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.deletePet = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await petModel.deletePet(id);
-    res.status(200).json({ success: true, message: result.message });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error creating pet:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
