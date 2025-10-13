@@ -111,7 +111,7 @@ exports.getAllPets = async (req, res) => {
   }
 };
 
-// ✅ READ PET(S) BY ID
+// ✅ READ PET(S) BY ID OR DOC ID
 exports.getPet = async (req, res) => {
   try {
     const { id, petId } = req.params;
@@ -152,6 +152,42 @@ exports.getPet = async (req, res) => {
     res.status(400).json({ success: false, message: "Please provide either id or petId in params" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to fetch pet(s)", error: error.message });
+  }
+};
+
+// ✅ GET PETS BY USER ID
+exports.getPetsByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "userId is required" });
+    }
+
+    const snapshot = await db.collection("pets").where("userId", "==", userId).get();
+
+    if (snapshot.empty) {
+      return res.status(404).json({ success: false, message: "No pets found for this user" });
+    }
+
+    const allPets = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const petsArray = Array.isArray(data.added_pets)
+        ? data.added_pets
+        : data.added_pets
+        ? [data.added_pets]
+        : [];
+      petsArray.forEach((pet) => allPets.push({ ...pet, parentDocId: doc.id }));
+    });
+
+    res.status(200).json({ success: true, userId, pets: allPets });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pets by userId",
+      error: error.message,
+    });
   }
 };
 
@@ -200,11 +236,7 @@ exports.deletePet = async (req, res) => {
 
     snapshot.forEach((doc) => {
       const data = doc.data();
-      const currentPets = Array.isArray(data.added_pets)
-        ? data.added_pets
-        : data.added_pets
-        ? [data.added_pets]
-        : [];
+      const currentPets = Array.isArray(data.added_pets) ? data.added_pets : data.added_pets ? [data.added_pets] : [];
       if (currentPets.some((p) => p.petId === petId)) {
         petDocRef = doc.ref;
         updatedPets = currentPets.filter((p) => p.petId !== petId);
