@@ -1,28 +1,30 @@
 // controllers/petController.js
 const { db } = require("../config/firebase");
 
-// ✅ CREATE PET(S)
+// ✅ Create or Update Pets for a User
 exports.createPet = async (req, res) => {
   try {
     const { userId, added_pets } = req.body;
 
     if (!userId || !added_pets) {
-      return res
-        .status(400)
-        .json({ success: false, message: "userId and added_pets required" });
+      return res.status(400).json({
+        success: false,
+        message: "userId and added_pets are required",
+      });
     }
 
-    // Check if user exists in "users"
+    // 🔍 Check if user exists in "users" collection
     const userRef = db.collection("users").doc(userId);
     const userSnap = await userRef.get();
+
     if (!userSnap.exists) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
     }
 
-    // Check if existing pets doc for this user
-    const petsQuery = await db.collection("pets").where("userId", "==", userId).get();
-
-    // Assign unique pet IDs
+    // 🔑 Assign unique IDs to each pet
     const petsWithIds = Array.isArray(added_pets)
       ? added_pets.map((pet) => ({
           ...pet,
@@ -37,11 +39,14 @@ exports.createPet = async (req, res) => {
           },
         ];
 
+    // 🔎 Check if a pets document already exists for this user
+    const petsQuery = await db.collection("pets").where("userId", "==", userId).get();
+
     let petDocRef;
     let updatedData;
 
     if (!petsQuery.empty) {
-      // Append new pets to existing document
+      // 🟡 Update existing document
       petDocRef = petsQuery.docs[0].ref;
       const existingData = petsQuery.docs[0].data();
 
@@ -53,7 +58,7 @@ exports.createPet = async (req, res) => {
 
       await petDocRef.update(updatedData);
     } else {
-      // Create new document
+      // 🟢 Create a new document for this user
       const newDocRef = db.collection("pets").doc();
       updatedData = {
         id: newDocRef.id,
@@ -67,13 +72,16 @@ exports.createPet = async (req, res) => {
       petDocRef = newDocRef;
     }
 
+    // 🚫 Remove ownerInfo before sending response
+    const { ownerInfo, ...responseData } = updatedData;
+
     res.status(201).json({
       success: true,
       message: "Pet(s) added successfully",
-      data: { id: petDocRef.id, ...updatedData },
+      data: { id: petDocRef.id, ...responseData },
     });
   } catch (error) {
-    console.error("Error creating pet:", error);
+    console.error("❌ Error creating pet:", error);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
