@@ -1,19 +1,26 @@
-// routes/pet.js
 const express = require("express");
 const router = express.Router();
 const petController = require("../controllers/petController");
 
-// CREATE
+// CREATE PET(S) for a user
 router.post("/", petController.createPet);
 
-// READ
+// READ ALL PETS
 router.get("/", petController.getAllPets);
-router.get("/:id", petController.getPetById);
 
-// UPDATE
-router.put("/:id", petController.updatePet);
+// READ PET(S)
+// By parent document ID: /api/pets/doc/:id
+router.get("/doc/:id", petController.getPet);
 
-// DELETE
-router.delete("/:id", petController.deletePet);
+// By single pet ID: /api/pets/pet/:petId
+router.get("/pet/:petId", petController.getPet);
+
+// UPDATE PET
+// Update single pet by petId
+router.put("/pet/:petId", petController.updatePet);
+
+// DELETE PET
+// Delete single pet by petId
+router.delete("/pet/:petId", petController.deletePet);
 
 module.exports = router;
