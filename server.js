@@ -2,12 +2,16 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 
+// ✅ Import Routes
 const userRoutes = require("./routes/user");
 const lostPetRoutes = require("./routes/lostPet");
 const foundPetRoutes = require("./routes/foundPet");
 const bookingRoutes = require("./routes/booking");
 const dashboardRoutes = require("./routes/dashboard");
 const reportRoutes = require("./routes/report");
+const petRoutes = require("./routes/pet");
+
+// ✅ Middleware
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -34,6 +38,8 @@ app.use("/api/found-pets", foundPetRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api", dashboardRoutes);
 app.use("/api", reportRoutes);
+app.use("/api/pets", petRoutes);
+
 // ✅ Health Check
 app.get("/", (req, res) => {
   res.send("Node.js + Firebase API is running 🚀");
