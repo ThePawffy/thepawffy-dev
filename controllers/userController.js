@@ -1,4 +1,4 @@
-const { db } = require("../config/firebase");
+const { db, admin } = require("../config/firebase");
 const { getDummyUser } = require("../models/userModel");
 
 // ✅ CHECK USER STATUS OR CREATE DUMMY
@@ -98,10 +98,10 @@ exports.upsertUser = async (req, res) => {
   }
 };
 
-// ✅ NEW FUNCTION: Get address and selectedAddress by user ID
+// ✅ READ: Get addresses and selectedAddress by user ID
 exports.getUserAddress = async (req, res) => {
   try {
-    const { id } = req.body; // taking ID from request body
+    const { id } = req.body;
 
     if (!id) {
       return res.status(400).json({
@@ -122,19 +122,165 @@ exports.getUserAddress = async (req, res) => {
 
     const userData = doc.data();
 
-    // extract only required fields
     const response = {
-      addresses: userData.addresses  || null,
+      addresses: userData.addresses || [],
       selectedAddress: userData.selectedAddress || null,
     };
 
     return res.status(200).json({
       success: true,
-      message: "User address fetched successfully",
+      message: "User addresses fetched successfully",
       data: response,
     });
   } catch (error) {
     console.error("Error fetching user addresses:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ CREATE: Add a new address
+exports.addUserAddress = async (req, res) => {
+  try {
+    const { id, newAddress } = req.body;
+
+    if (!id || !newAddress) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and newAddress are required",
+      });
+    }
+
+    const userRef = db.collection("users").doc(id);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    await userRef.update({
+      addresses: admin.firestore.FieldValue.arrayUnion(newAddress),
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Address added successfully",
+    });
+  } catch (error) {
+    console.error("Error adding address:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ UPDATE: Modify an address or selectedAddress
+exports.updateUserAddress = async (req, res) => {
+  try {
+    const { id, addressIndex, updatedAddress, selectedAddress } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const userRef = db.collection("users").doc(id);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userData = userDoc.data();
+    let updatedData = {};
+
+    // Update selectedAddress if provided
+    if (selectedAddress) updatedData.selectedAddress = selectedAddress;
+
+    // Update address by index
+    if (
+      typeof addressIndex === "number" &&
+      updatedAddress &&
+      Array.isArray(userData.addresses) &&
+      userData.addresses[addressIndex]
+    ) {
+      const updatedAddresses = [...userData.addresses];
+      updatedAddresses[addressIndex] = updatedAddress;
+      updatedData.addresses = updatedAddresses;
+    }
+
+    await userRef.update(updatedData);
+
+    return res.status(200).json({
+      success: true,
+      message: "Address or selectedAddress updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating user address:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ DELETE: Remove an address by index
+exports.deleteUserAddress = async (req, res) => {
+  try {
+    const { id, addressIndex } = req.body;
+
+    if (!id || typeof addressIndex !== "number") {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and valid addressIndex are required",
+      });
+    }
+
+    const userRef = db.collection("users").doc(id);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userData = userDoc.data();
+
+    if (!Array.isArray(userData.addresses) || !userData.addresses[addressIndex]) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found at given index",
+      });
+    }
+
+    const updatedAddresses = userData.addresses.filter(
+      (_, idx) => idx !== addressIndex
+    );
+
+    await userRef.update({ addresses: updatedAddresses });
+
+    return res.status(200).json({
+      success: true,
+      message: "Address deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting user address:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
