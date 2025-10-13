@@ -14,6 +14,9 @@ router.get("/doc/:id", petController.getPet);
 // READ SINGLE PET BY PET ID
 router.get("/pet/:petId", petController.getPet);
 
+// READ PET BY USER ID
+router.get("/user/:userId", petController.getPetsByUserId);
+
 // UPDATE PET BY PET ID
 router.put("/:petId", petController.updatePet);
 
