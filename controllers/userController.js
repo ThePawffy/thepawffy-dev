@@ -1,7 +1,11 @@
 const { db, admin } = require("../config/firebase");
 const { getDummyUser } = require("../models/userModel");
 
-// ✅ CHECK USER STATUS OR CREATE DUMMY
+// =======================
+// ✅ USER CHECK & UPSERT
+// =======================
+
+// 🔹 Check user or create dummy
 exports.checkUser = async (req, res) => {
   try {
     const { doc_id } = req.params;
@@ -14,14 +18,13 @@ exports.checkUser = async (req, res) => {
 
       return res.status(200).json({
         success: false,
-        message: "User not found",
+        message: "User not found, dummy created.",
         user: dummyUser,
       });
     }
 
     const userData = userDoc.data();
 
-    // ✅ Required fields check
     const requiredFields = ["email", "phoneNumber", "name", "description"];
     for (let field of requiredFields) {
       if (!userData[field]) {
@@ -33,11 +36,10 @@ exports.checkUser = async (req, res) => {
       }
     }
 
-    // ✅ Check addresses
     if (!Array.isArray(userData.addresses) || userData.addresses.length === 0) {
       return res.status(200).json({
         success: false,
-        message: "Please complete the registration process",
+        message: "Please add at least one address",
         user: userData,
       });
     }
@@ -57,17 +59,14 @@ exports.checkUser = async (req, res) => {
   }
 };
 
-// ✅ UPSERT USER DATA
+// 🔹 Upsert user data
 exports.upsertUser = async (req, res) => {
   try {
     const userData = req.body;
     const docId = userData.id;
 
     if (!docId) {
-      return res.status(400).json({
-        success: false,
-        message: "Document id is required",
-      });
+      return res.status(400).json({ success: false, message: "id is required" });
     }
 
     const userRef = db.collection("users").doc(docId);
@@ -90,201 +89,127 @@ exports.upsertUser = async (req, res) => {
     }
   } catch (error) {
     console.error("Error upserting user:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong",
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
   }
 };
 
-// ✅ READ: Get addresses and selectedAddress by user ID
+// =======================
+// ✅ ADDRESS CRUD
+// =======================
+
+// 🔹 READ: Get all addresses and selectedAddress
 exports.getUserAddress = async (req, res) => {
   try {
     const { id } = req.body;
 
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "User ID is required",
-      });
-    }
-
-    const userRef = db.collection("users").doc(id);
-    const doc = await userRef.get();
-
-    if (!doc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    const userData = doc.data();
-
-    const response = {
-      addresses: userData.addresses || [],
-      selectedAddress: userData.selectedAddress || null,
-    };
-
-    return res.status(200).json({
-      success: true,
-      message: "User addresses fetched successfully",
-      data: response,
-    });
-  } catch (error) {
-    console.error("Error fetching user addresses:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-      error: error.message,
-    });
-  }
-};
-
-// ✅ CREATE: Add a new address
-exports.addUserAddress = async (req, res) => {
-  try {
-    const { id, newAddress } = req.body;
-
-    if (!id || !newAddress) {
-      return res.status(400).json({
-        success: false,
-        message: "User ID and newAddress are required",
-      });
-    }
+    if (!id) return res.status(400).json({ success: false, message: "id is required" });
 
     const userRef = db.collection("users").doc(id);
     const userDoc = await userRef.get();
 
-    if (!userDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    if (!userDoc.exists) return res.status(404).json({ success: false, message: "User not found" });
+
+    const userData = userDoc.data();
+
+    return res.status(200).json({
+      success: true,
+      message: "User addresses fetched successfully",
+      data: {
+        addresses: userData.addresses || [],
+        selectedAddress: userData.selectedAddress || null,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching addresses:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+  }
+};
+
+// 🔹 CREATE: Add a new address
+exports.addUserAddress = async (req, res) => {
+  try {
+    const { id, newAddress } = req.body;
+
+    if (!id || !newAddress) return res.status(400).json({ success: false, message: "id and newAddress are required" });
+
+    const userRef = db.collection("users").doc(id);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) return res.status(404).json({ success: false, message: "User not found" });
 
     await userRef.update({
       addresses: admin.firestore.FieldValue.arrayUnion(newAddress),
     });
 
-    return res.status(200).json({
-      success: true,
-      message: "Address added successfully",
-    });
+    return res.status(200).json({ success: true, message: "Address added successfully" });
   } catch (error) {
     console.error("Error adding address:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
   }
 };
 
-// ✅ UPDATE: Modify an address or selectedAddress
+// 🔹 UPDATE: Update an address by index or change selectedAddress
 exports.updateUserAddress = async (req, res) => {
   try {
     const { id, addressIndex, updatedAddress, selectedAddress } = req.body;
 
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "User ID is required",
-      });
-    }
+    if (!id) return res.status(400).json({ success: false, message: "id is required" });
 
     const userRef = db.collection("users").doc(id);
     const userDoc = await userRef.get();
 
-    if (!userDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    if (!userDoc.exists) return res.status(404).json({ success: false, message: "User not found" });
 
     const userData = userDoc.data();
-    let updatedData = {};
+    let updateData = {};
 
-    // Update selectedAddress if provided
-    if (selectedAddress) updatedData.selectedAddress = selectedAddress;
+    if (selectedAddress) updateData.selectedAddress = selectedAddress;
 
-    // Update address by index
     if (
       typeof addressIndex === "number" &&
-      updatedAddress &&
       Array.isArray(userData.addresses) &&
-      userData.addresses[addressIndex]
+      userData.addresses[addressIndex] &&
+      updatedAddress
     ) {
       const updatedAddresses = [...userData.addresses];
       updatedAddresses[addressIndex] = updatedAddress;
-      updatedData.addresses = updatedAddresses;
+      updateData.addresses = updatedAddresses;
     }
 
-    await userRef.update(updatedData);
+    await userRef.update(updateData);
 
-    return res.status(200).json({
-      success: true,
-      message: "Address or selectedAddress updated successfully",
-    });
+    return res.status(200).json({ success: true, message: "Address updated successfully" });
   } catch (error) {
-    console.error("Error updating user address:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-      error: error.message,
-    });
+    console.error("Error updating address:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
   }
 };
 
-// ✅ DELETE: Remove an address by index
+// 🔹 DELETE: Remove address by index
 exports.deleteUserAddress = async (req, res) => {
   try {
     const { id, addressIndex } = req.body;
 
-    if (!id || typeof addressIndex !== "number") {
-      return res.status(400).json({
-        success: false,
-        message: "User ID and valid addressIndex are required",
-      });
-    }
+    if (!id || typeof addressIndex !== "number")
+      return res.status(400).json({ success: false, message: "id and valid addressIndex are required" });
 
     const userRef = db.collection("users").doc(id);
     const userDoc = await userRef.get();
 
-    if (!userDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    if (!userDoc.exists) return res.status(404).json({ success: false, message: "User not found" });
 
     const userData = userDoc.data();
 
-    if (!Array.isArray(userData.addresses) || !userData.addresses[addressIndex]) {
-      return res.status(404).json({
-        success: false,
-        message: "Address not found at given index",
-      });
-    }
+    if (!Array.isArray(userData.addresses) || !userData.addresses[addressIndex])
+      return res.status(404).json({ success: false, message: "Address not found" });
 
-    const updatedAddresses = userData.addresses.filter(
-      (_, idx) => idx !== addressIndex
-    );
+    const updatedAddresses = userData.addresses.filter((_, idx) => idx !== addressIndex);
 
     await userRef.update({ addresses: updatedAddresses });
 
-    return res.status(200).json({
-      success: true,
-      message: "Address deleted successfully",
-    });
+    return res.status(200).json({ success: true, message: "Address deleted successfully" });
   } catch (error) {
-    console.error("Error deleting user address:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-      error: error.message,
-    });
+    console.error("Error deleting address:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
   }
 };
