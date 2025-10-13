@@ -13,7 +13,6 @@ exports.createPet = async (req, res) => {
       });
     }
 
-    // 🔍 Check if user exists in "users" collection
     const userRef = db.collection("users").doc(userId);
     const userSnap = await userRef.get();
 
@@ -24,7 +23,6 @@ exports.createPet = async (req, res) => {
       });
     }
 
-    // 🔑 Assign unique IDs to each pet
     const petsWithIds = Array.isArray(added_pets)
       ? added_pets.map((pet) => ({
           ...pet,
@@ -39,26 +37,28 @@ exports.createPet = async (req, res) => {
           },
         ];
 
-    // 🔎 Check if a pets document already exists for this user
     const petsQuery = await db.collection("pets").where("userId", "==", userId).get();
 
     let petDocRef;
     let updatedData;
 
     if (!petsQuery.empty) {
-      // 🟡 Update existing document
       petDocRef = petsQuery.docs[0].ref;
       const existingData = petsQuery.docs[0].data();
 
+      // Ensure added_pets is always an array
+      const existingPetsArray = Array.isArray(existingData.added_pets)
+        ? existingData.added_pets
+        : [existingData.added_pets];
+
       updatedData = {
         ...existingData,
-        added_pets: [...(existingData.added_pets || []), ...petsWithIds],
+        added_pets: [...existingPetsArray, ...petsWithIds],
         updatedAt: new Date(),
       };
 
       await petDocRef.update(updatedData);
     } else {
-      // 🟢 Create a new document for this user
       const newDocRef = db.collection("pets").doc();
       updatedData = {
         id: newDocRef.id,
@@ -72,7 +72,6 @@ exports.createPet = async (req, res) => {
       petDocRef = newDocRef;
     }
 
-    // 🚫 Remove ownerInfo before sending response
     const { ownerInfo, ...responseData } = updatedData;
 
     res.status(201).json({
@@ -98,15 +97,19 @@ exports.getAllPets = async (req, res) => {
 
     snapshot.forEach((doc) => {
       const data = doc.data();
-      if (data.added_pets) {
-        data.added_pets.forEach((pet) => {
-          allPets.push({
-            ...pet,
-            userId: data.userId,
-            parentDocId: doc.id,
-          });
+      const petsArray = Array.isArray(data.added_pets)
+        ? data.added_pets
+        : data.added_pets
+        ? [data.added_pets]
+        : [];
+
+      petsArray.forEach((pet) => {
+        allPets.push({
+          ...pet,
+          userId: data.userId,
+          parentDocId: doc.id,
         });
-      }
+      });
     });
 
     res.status(200).json({ success: true, pets: allPets });
@@ -128,7 +131,13 @@ exports.getPetById = async (req, res) => {
     let foundPet = null;
     snapshot.forEach((doc) => {
       const data = doc.data();
-      const pet = data.added_pets?.find((p) => p.petId === id);
+      const petsArray = Array.isArray(data.added_pets)
+        ? data.added_pets
+        : data.added_pets
+        ? [data.added_pets]
+        : [];
+
+      const pet = petsArray.find((p) => p.petId === id);
       if (pet) {
         foundPet = { ...pet, userId: data.userId, parentDocId: doc.id };
       }
@@ -160,10 +169,16 @@ exports.updatePet = async (req, res) => {
 
     snapshot.forEach((doc) => {
       const data = doc.data();
-      const petIndex = data.added_pets?.findIndex((p) => p.petId === id);
+      const currentPets = Array.isArray(data.added_pets)
+        ? data.added_pets
+        : data.added_pets
+        ? [data.added_pets]
+        : [];
+
+      const petIndex = currentPets.findIndex((p) => p.petId === id);
       if (petIndex > -1) {
         petDocRef = doc.ref;
-        petsArray = data.added_pets;
+        petsArray = currentPets;
         petsArray[petIndex] = { ...petsArray[petIndex], ...updatedData, updatedAt: new Date() };
       }
     });
@@ -195,9 +210,15 @@ exports.deletePet = async (req, res) => {
 
     snapshot.forEach((doc) => {
       const data = doc.data();
-      if (data.added_pets?.some((p) => p.petId === id)) {
+      const currentPets = Array.isArray(data.added_pets)
+        ? data.added_pets
+        : data.added_pets
+        ? [data.added_pets]
+        : [];
+
+      if (currentPets.some((p) => p.petId === id)) {
         petDocRef = doc.ref;
-        updatedPets = data.added_pets.filter((p) => p.petId !== id);
+        updatedPets = currentPets.filter((p) => p.petId !== id);
       }
     });
 
