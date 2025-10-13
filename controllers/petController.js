@@ -1,26 +1,28 @@
 // controllers/petController.js
 const { db } = require("../config/firebase");
 
+// ✅ CREATE PET(S)
 exports.createPet = async (req, res) => {
   try {
     const { userId, added_pets } = req.body;
 
     if (!userId || !added_pets) {
-      return res.status(400).json({ success: false, message: "userId and added_pets required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "userId and added_pets required" });
     }
 
-    // Check if user exists in "users" collection
+    // Check if user exists in "users"
     const userRef = db.collection("users").doc(userId);
     const userSnap = await userRef.get();
-
     if (!userSnap.exists) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Check if a document already exists in "pets" for this user
+    // Check if existing pets doc for this user
     const petsQuery = await db.collection("pets").where("userId", "==", userId).get();
 
-    // Assign unique IDs to each pet
+    // Assign unique pet IDs
     const petsWithIds = Array.isArray(added_pets)
       ? added_pets.map((pet) => ({
           ...pet,
@@ -39,7 +41,7 @@ exports.createPet = async (req, res) => {
     let updatedData;
 
     if (!petsQuery.empty) {
-      // If user already has a document, append new pets
+      // Append new pets to existing document
       petDocRef = petsQuery.docs[0].ref;
       const existingData = petsQuery.docs[0].data();
 
@@ -51,7 +53,7 @@ exports.createPet = async (req, res) => {
 
       await petDocRef.update(updatedData);
     } else {
-      // Otherwise, create a new document for this user
+      // Create new document
       const newDocRef = db.collection("pets").doc();
       updatedData = {
         id: newDocRef.id,
@@ -75,6 +77,132 @@ exports.createPet = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ READ ALL PETS
+exports.getAllPets = async (req, res) => {
+  try {
+    const snapshot = await db.collection("pets").get();
+    const allPets = [];
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.added_pets) {
+        data.added_pets.forEach((pet) => {
+          allPets.push({
+            ...pet,
+            userId: data.userId,
+            parentDocId: doc.id,
+          });
+        });
+      }
+    });
+
+    res.status(200).json({ success: true, pets: allPets });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pets",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ READ PET BY ID
+exports.getPetById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const snapshot = await db.collection("pets").get();
+
+    let foundPet = null;
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const pet = data.added_pets?.find((p) => p.petId === id);
+      if (pet) {
+        foundPet = { ...pet, userId: data.userId, parentDocId: doc.id };
+      }
+    });
+
+    if (!foundPet) {
+      return res.status(404).json({ success: false, message: "Pet not found" });
+    }
+
+    res.status(200).json({ success: true, pet: foundPet });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pet",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ UPDATE PET
+exports.updatePet = async (req, res) => {
+  try {
+    const { id } = req.params; // petId
+    const updatedData = req.body;
+
+    const snapshot = await db.collection("pets").get();
+    let petDocRef = null;
+    let petsArray = [];
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const petIndex = data.added_pets?.findIndex((p) => p.petId === id);
+      if (petIndex > -1) {
+        petDocRef = doc.ref;
+        petsArray = data.added_pets;
+        petsArray[petIndex] = { ...petsArray[petIndex], ...updatedData, updatedAt: new Date() };
+      }
+    });
+
+    if (!petDocRef) {
+      return res.status(404).json({ success: false, message: "Pet not found" });
+    }
+
+    await petDocRef.update({ added_pets: petsArray });
+
+    res.status(200).json({ success: true, message: "Pet updated successfully" });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update pet",
+      error: error.message,
+    });
+  }
+};
+
+// ✅ DELETE PET
+exports.deletePet = async (req, res) => {
+  try {
+    const { id } = req.params; // petId
+
+    const snapshot = await db.collection("pets").get();
+    let petDocRef = null;
+    let updatedPets = [];
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.added_pets?.some((p) => p.petId === id)) {
+        petDocRef = doc.ref;
+        updatedPets = data.added_pets.filter((p) => p.petId !== id);
+      }
+    });
+
+    if (!petDocRef) {
+      return res.status(404).json({ success: false, message: "Pet not found" });
+    }
+
+    await petDocRef.update({ added_pets: updatedPets });
+    res.status(200).json({ success: true, message: "Pet deleted successfully" });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete pet",
       error: error.message,
     });
   }
