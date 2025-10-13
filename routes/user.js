@@ -4,10 +4,9 @@ const { db } = require("../config/firebase");
 const { getDummyUser } = require("../models/userModel");
 
 // ----------------------
-// ✅ CONTROLLERS
+// ✅ EXISTING CONTROLLERS
 // ----------------------
 
-// 🔹 Check if user exists, else create dummy user
 const checkUser = async (req, res) => {
   try {
     const { doc_id } = req.params;
@@ -26,8 +25,6 @@ const checkUser = async (req, res) => {
     }
 
     const userData = userDoc.data();
-
-    // Required field validation
     const requiredFields = ["email", "phoneNumber", "name", "description"];
     for (let field of requiredFields) {
       if (!userData[field]) {
@@ -39,7 +36,6 @@ const checkUser = async (req, res) => {
       }
     }
 
-    // Address validation
     if (!Array.isArray(userData.addresses) || userData.addresses.length === 0) {
       return res.status(200).json({
         success: false,
@@ -63,83 +59,178 @@ const checkUser = async (req, res) => {
   }
 };
 
-// 🔹 Create or update user (upsert)
-const upsertUser = async (req, res) => {
+// ----------------------
+// ✅ ADDRESS CRUD CONTROLLERS
+// ----------------------
+
+// 📋 GET all addresses
+const getAllAddresses = async (req, res) => {
   try {
-    const userData = req.body;
-    const docId = userData.id;
-
-    if (!docId) {
-      return res.status(400).json({
-        success: false,
-        message: "Document id is required",
-      });
-    }
-
-    const userRef = db.collection("users").doc(docId);
+    const { userId } = req.params;
+    const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
 
-    if (userDoc.exists) {
-      await userRef.update(userData);
-      return res.status(200).json({
-        success: true,
-        message: "User updated successfully",
-        user: { id: docId, ...userData },
-      });
-    } else {
-      await userRef.set(userData);
-      return res.status(200).json({
-        success: true,
-        message: "User created successfully",
-        user: { id: docId, ...userData },
-      });
-    }
+    if (!userDoc.exists)
+      return res.status(404).json({ success: false, message: "User not found" });
+
+    const data = userDoc.data();
+    res.status(200).json({
+      success: true,
+      message: "Addresses fetched successfully",
+      addresses: data.addresses || [],
+      selectedAddress: data.selectedAddress || null,
+    });
   } catch (error) {
-    console.error("Error upserting user:", error);
-    return res.status(500).json({
+    console.error("Error fetching addresses:", error);
+    res.status(500).json({
       success: false,
-      message: "Something went wrong",
+      message: "Internal Server Error",
       error: error.message,
     });
   }
 };
 
-// 🔹 Fetch addresses and selectedAddress by ID
-const getUserAddress = async (req, res) => {
+// ➕ ADD new address
+const addAddress = async (req, res) => {
   try {
-    const { id } = req.body;
-
-    if (!id) {
+    const { userId, address } = req.body;
+    if (!userId || !address)
       return res.status(400).json({
         success: false,
-        message: "User ID is required",
+        message: "userId and address are required",
       });
-    }
 
-    const userRef = db.collection("users").doc(id);
+    const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
 
-    if (!userDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    if (!userDoc.exists)
+      return res.status(404).json({ success: false, message: "User not found" });
 
-    const userData = userDoc.data();
-    const response = {
-      addresses: userData.addresses || [],
-      selectedAddress: userData.selectedAddress || null,
-    };
+    const data = userDoc.data();
+    const addresses = data.addresses || [];
 
-    return res.status(200).json({
+    const newAddress = { id: Date.now().toString(), ...address };
+    addresses.push(newAddress);
+
+    await userRef.update({ addresses });
+
+    res.status(200).json({
       success: true,
-      message: "User addresses fetched successfully",
-      data: response,
+      message: "Address added successfully",
+      addresses,
     });
   } catch (error) {
-    console.error("Error fetching user addresses:", error);
-    return res.status(500).json({
+    console.error("Error adding address:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+// ✏️ UPDATE an address
+const updateAddress = async (req, res) => {
+  try {
+    const { userId, addressId, updatedAddress } = req.body;
+    if (!userId || !addressId || !updatedAddress)
+      return res.status(400).json({
+        success: false,
+        message: "userId, addressId, and updatedAddress are required",
+      });
+
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists)
+      return res.status(404).json({ success: false, message: "User not found" });
+
+    const data = userDoc.data();
+    const addresses = data.addresses || [];
+
+    const index = addresses.findIndex((a) => a.id === addressId);
+    if (index === -1)
+      return res
+        .status(404)
+        .json({ success: false, message: "Address not found" });
+
+    addresses[index] = { ...addresses[index], ...updatedAddress };
+
+    await userRef.update({ addresses });
+
+    res.status(200).json({
+      success: true,
+      message: "Address updated successfully",
+      addresses,
+    });
+  } catch (error) {
+    console.error("Error updating address:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+// 🗑️ DELETE an address
+const deleteAddress = async (req, res) => {
+  try {
+    const { userId, addressId } = req.body;
+    if (!userId || !addressId)
+      return res.status(400).json({
+        success: false,
+        message: "userId and addressId are required",
+      });
+
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists)
+      return res.status(404).json({ success: false, message: "User not found" });
+
+    const data = userDoc.data();
+    const addresses = data.addresses || [];
+
+    const updatedAddresses = addresses.filter((a) => a.id !== addressId);
+    await userRef.update({ addresses: updatedAddresses });
+
+    res.status(200).json({
+      success: true,
+      message: "Address deleted successfully",
+      addresses: updatedAddresses,
+    });
+  } catch (error) {
+    console.error("Error deleting address:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+// 🌟 SET selected address
+const setSelectedAddress = async (req, res) => {
+  try {
+    const { userId, addressId } = req.body;
+    if (!userId || !addressId)
+      return res.status(400).json({
+        success: false,
+        message: "userId and addressId are required",
+      });
+
+    const userRef = db.collection("users").doc(userId);
+    await userRef.update({ selectedAddress: addressId });
+
+    res.status(200).json({
+      success: true,
+      message: "Selected address updated successfully",
+      selectedAddress: addressId,
+    });
+  } catch (error) {
+    console.error("Error setting selected address:", error);
+    res.status(500).json({
       success: false,
       message: "Internal Server Error",
       error: error.message,
@@ -150,8 +241,13 @@ const getUserAddress = async (req, res) => {
 // ----------------------
 // ✅ ROUTES
 // ----------------------
-router.get("/check-user-exists/:doc_id", checkUser);   // GET /api/user/check-user-exists/:doc_id
-router.post("/upsert", upsertUser);                    // POST /api/user/upsert
-router.post("/get-addresses", getUserAddress);      // POST /api/user/getUserAddresses
+router.get("/check-user-exists/:doc_id", checkUser);
+
+// 🔹 ADDRESS CRUD ROUTES
+router.get("/:userId/addresses", getAllAddresses);       // GET all addresses
+router.post("/address/add", addAddress);                 // ADD address
+router.put("/address/update", updateAddress);            // UPDATE address
+router.delete("/address/delete", deleteAddress);         // DELETE address
+router.post("/address/select", setSelectedAddress);      // SET selected address
 
 module.exports = router;
