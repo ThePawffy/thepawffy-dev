@@ -12,9 +12,9 @@ router.post("/get-addresses", userController.getUserAddress);
 // ----------------------
 // CRUD ADDRESS ROUTES
 // ----------------------
-router.post("/address/add", userController.addAddress);             // Add new address
-router.put("/address/update", userController.updateAddress);        // Update existing address
-router.delete("/address/delete", userController.deleteAddress);     // Delete address
-router.post("/address/select", userController.setSelectedAddress);  // Set selected address
+router.post("/add-address", userController.addAddress);             // Add new address
+router.put("/update-address", userController.updateAddress);        // Update existing address
+router.delete("/delete-address", userController.deleteAddress);     // Delete address
+router.post("/set-select-address", userController.setSelectedAddress);  // Set selected address
 
 module.exports = router;
