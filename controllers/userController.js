@@ -2,7 +2,7 @@
 const { db } = require("../config/firebase");
 const { getDummyUser } = require("../models/userModel");
 
-// ✅ CHECK USER STATUS OR CREATE DUMMY
+// CHECK USER STATUS OR CREATE DUMMY
 exports.checkUser = async (req, res) => {
   try {
     const { doc_id } = req.params;
@@ -22,7 +22,7 @@ exports.checkUser = async (req, res) => {
 
     const userData = userDoc.data();
 
-    // ✅ Required fields check
+    // Required fields check
     const requiredFields = ["email", "phoneNumber", "name", "description"];
     for (let field of requiredFields) {
       if (!userData[field]) {
@@ -34,7 +34,7 @@ exports.checkUser = async (req, res) => {
       }
     }
 
-    // ✅ Check addresses
+    // Check addresses
     if (!Array.isArray(userData.addresses) || userData.addresses.length === 0) {
       return res.status(200).json({
         success: false,
@@ -58,7 +58,7 @@ exports.checkUser = async (req, res) => {
   }
 };
 
-// ✅ UPSERT USER DATA
+// UPSERT USER DATA
 exports.upsertUser = async (req, res) => {
   try {
     const userData = req.body;
@@ -99,7 +99,7 @@ exports.upsertUser = async (req, res) => {
   }
 };
 
-// ✅ NEW FUNCTION: Get address and selectedAddress by user ID
+// Get address and selectedAddress by user ID
 exports.getUserAddress = async (req, res) => {
   try {
     const { id } = req.body; // taking ID from request body
