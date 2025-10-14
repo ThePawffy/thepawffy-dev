@@ -1,3 +1,4 @@
+//controllers/userController.js
 const { db } = require("../config/firebase");
 const { getDummyUser } = require("../models/userModel");
 
