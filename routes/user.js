@@ -15,6 +15,6 @@ router.post("/get-addresses", userController.getUserAddress);
 router.post("/add-address", userController.addAddress);             // Add new address
 router.put("/update-address", userController.updateAddress);        // Update existing address
 router.delete("/delete-address", userController.deleteAddress);     // Delete address
-router.post("/set-select-address", userController.setSelectedAddress);  // Set selected address
+router.post("/set-selected-address", userController.setSelectedAddress);  // Set selected address
 
 module.exports = router;
