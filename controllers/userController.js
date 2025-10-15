@@ -177,17 +177,17 @@ exports.addAddress = async (req, res) => {
     const newAddress = { id: Date.now().toString(), ...address };
     addresses.push(newAddress);
 
-    // ✅ Update both addresses array and selectedAddress
+    // ✅ Update both addresses array and selectedAddress (full object)
     await userRef.update({
       addresses,
-      selectedAddress: newAddress.id, // auto-select the newly added address
+      selectedAddress: newAddress, // full JSON
     });
 
     return res.status(200).json({
       success: true,
       message: "Address added successfully and set as selected",
       addresses,
-      selectedAddress: newAddress.id,
+      selectedAddress: newAddress,
     });
   } catch (error) {
     console.error("Error adding address:", error);
@@ -199,7 +199,7 @@ exports.addAddress = async (req, res) => {
   }
 };
 
-// ✏️ UPDATE ADDRESS (preserve selected address)
+// ✏️ UPDATE ADDRESS (preserve selected address object)
 exports.updateAddress = async (req, res) => {
   try {
     const { userId, addressId, updatedAddress } = req.body;
@@ -235,10 +235,11 @@ exports.updateAddress = async (req, res) => {
     // ✅ Merge updates and preserve ID
     addresses[index] = { ...addresses[index], ...updatedAddress, id: addressId };
 
-    // ✅ Preserve selectedAddress state
-    const selectedAddress = userData.selectedAddress || null;
-    const updatedSelectedAddress =
-      selectedAddress === addressId ? addressId : selectedAddress;
+    // ✅ Update selectedAddress as full object
+    let updatedSelectedAddress = userData.selectedAddress;
+    if (userData.selectedAddress?.id === addressId) {
+      updatedSelectedAddress = addresses[index]; // update with new data
+    }
 
     await userRef.update({
       addresses,
@@ -261,7 +262,7 @@ exports.updateAddress = async (req, res) => {
   }
 };
 
-// 🗑️ DELETE ADDRESS (auto-update selected address)
+// 🗑️ DELETE ADDRESS (auto-update selected address object)
 exports.deleteAddress = async (req, res) => {
   try {
     const { userId, addressId } = req.body;
@@ -289,9 +290,9 @@ exports.deleteAddress = async (req, res) => {
 
     let newSelectedAddress = userData.selectedAddress;
 
-    // ✅ Auto-update selectedAddress if the deleted one was selected
-    if (userData.selectedAddress === addressId) {
-      newSelectedAddress = updatedAddresses.length > 0 ? updatedAddresses[0].id : null;
+    // ✅ Auto-update selectedAddress if deleted one was selected
+    if (userData.selectedAddress?.id === addressId) {
+      newSelectedAddress = updatedAddresses.length > 0 ? updatedAddresses[0] : null;
     }
 
     await userRef.update({
@@ -318,7 +319,7 @@ exports.deleteAddress = async (req, res) => {
   }
 };
 
-// 🌟 SET SELECTED ADDRESS
+// 🌟 SET SELECTED ADDRESS (store full object)
 exports.setSelectedAddress = async (req, res) => {
   try {
     const { userId, addressId } = req.body;
@@ -340,11 +341,23 @@ exports.setSelectedAddress = async (req, res) => {
       });
     }
 
-    await userRef.update({ selectedAddress: addressId });
+    const userData = userDoc.data();
+    const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
+    const selected = addresses.find((a) => a.id === addressId);
+
+    if (!selected) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found",
+      });
+    }
+
+    await userRef.update({ selectedAddress: selected });
 
     return res.status(200).json({
       success: true,
       message: "Selected address updated successfully",
+      selectedAddress: selected,
     });
   } catch (error) {
     console.error("Error setting selected address:", error);
