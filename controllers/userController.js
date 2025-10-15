@@ -2,7 +2,7 @@ const { db } = require("../config/firebase");
 const { getDummyUser } = require("../models/userModel");
 
 // ----------------------
-// EXISTING FUNCTIONS (unchanged)
+// ✅ CHECK USER STATUS OR CREATE DUMMY
 // ----------------------
 exports.checkUser = async (req, res) => {
   try {
@@ -56,6 +56,9 @@ exports.checkUser = async (req, res) => {
   }
 };
 
+// ----------------------
+// ✅ CREATE OR UPDATE USER
+// ----------------------
 exports.upsertUser = async (req, res) => {
   try {
     const userData = req.body;
@@ -96,6 +99,9 @@ exports.upsertUser = async (req, res) => {
   }
 };
 
+// ----------------------
+// ✅ GET USER ADDRESSES
+// ----------------------
 exports.getUserAddress = async (req, res) => {
   try {
     const { id } = req.body;
@@ -139,10 +145,10 @@ exports.getUserAddress = async (req, res) => {
 };
 
 // ----------------------
-// ✅ NEW CRUD FUNCTIONS FOR ADDRESSES
+// ✅ CRUD FUNCTIONS FOR ADDRESSES
 // ----------------------
 
-// ➕ CREATE Address
+// ➕ ADD NEW ADDRESS (auto-select)
 exports.addAddress = async (req, res) => {
   try {
     const { userId, address } = req.body;
@@ -167,16 +173,21 @@ exports.addAddress = async (req, res) => {
     const userData = userDoc.data();
     const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
 
-    // Add a unique ID for each address
+    // ✅ Add unique ID for each address
     const newAddress = { id: Date.now().toString(), ...address };
     addresses.push(newAddress);
 
-    await userRef.update({ addresses });
+    // ✅ Update both addresses array and selectedAddress
+    await userRef.update({
+      addresses,
+      selectedAddress: newAddress.id, // auto-select the newly added address
+    });
 
     return res.status(200).json({
       success: true,
-      message: "Address added successfully",
+      message: "Address added successfully and set as selected",
       addresses,
+      selectedAddress: newAddress.id,
     });
   } catch (error) {
     console.error("Error adding address:", error);
@@ -188,7 +199,7 @@ exports.addAddress = async (req, res) => {
   }
 };
 
-// ✏️ UPDATE Address
+// ✏️ UPDATE ADDRESS (preserve selected address)
 exports.updateAddress = async (req, res) => {
   try {
     const { userId, addressId, updatedAddress } = req.body;
@@ -211,7 +222,7 @@ exports.updateAddress = async (req, res) => {
     }
 
     const userData = userDoc.data();
-    const addresses = userData.addresses || [];
+    const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
 
     const index = addresses.findIndex((a) => a.id === addressId);
     if (index === -1) {
@@ -221,13 +232,24 @@ exports.updateAddress = async (req, res) => {
       });
     }
 
-    addresses[index] = { ...addresses[index], ...updatedAddress };
-    await userRef.update({ addresses });
+    // ✅ Merge updates and preserve ID
+    addresses[index] = { ...addresses[index], ...updatedAddress, id: addressId };
+
+    // ✅ Preserve selectedAddress state
+    const selectedAddress = userData.selectedAddress || null;
+    const updatedSelectedAddress =
+      selectedAddress === addressId ? addressId : selectedAddress;
+
+    await userRef.update({
+      addresses,
+      selectedAddress: updatedSelectedAddress,
+    });
 
     return res.status(200).json({
       success: true,
       message: "Address updated successfully",
       addresses,
+      selectedAddress: updatedSelectedAddress,
     });
   } catch (error) {
     console.error("Error updating address:", error);
@@ -239,7 +261,7 @@ exports.updateAddress = async (req, res) => {
   }
 };
 
-// 🗑️ DELETE Address
+// 🗑️ DELETE ADDRESS (auto-update selected address)
 exports.deleteAddress = async (req, res) => {
   try {
     const { userId, addressId } = req.body;
@@ -262,14 +284,29 @@ exports.deleteAddress = async (req, res) => {
     }
 
     const userData = userDoc.data();
-    const addresses = (userData.addresses || []).filter((a) => a.id !== addressId);
+    const oldAddresses = Array.isArray(userData.addresses) ? userData.addresses : [];
+    const updatedAddresses = oldAddresses.filter((a) => a.id !== addressId);
 
-    await userRef.update({ addresses });
+    let newSelectedAddress = userData.selectedAddress;
+
+    // ✅ Auto-update selectedAddress if the deleted one was selected
+    if (userData.selectedAddress === addressId) {
+      newSelectedAddress = updatedAddresses.length > 0 ? updatedAddresses[0].id : null;
+    }
+
+    await userRef.update({
+      addresses: updatedAddresses,
+      selectedAddress: newSelectedAddress,
+    });
 
     return res.status(200).json({
       success: true,
-      message: "Address deleted successfully",
-      addresses,
+      message:
+        newSelectedAddress
+          ? "Address deleted successfully and selected address updated"
+          : "Address deleted successfully (no addresses left)",
+      addresses: updatedAddresses,
+      selectedAddress: newSelectedAddress,
     });
   } catch (error) {
     console.error("Error deleting address:", error);
@@ -281,7 +318,7 @@ exports.deleteAddress = async (req, res) => {
   }
 };
 
-// 🌟 SET Selected Address
+// 🌟 SET SELECTED ADDRESS
 exports.setSelectedAddress = async (req, res) => {
   try {
     const { userId, addressId } = req.body;
