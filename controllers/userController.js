@@ -10,6 +10,7 @@ exports.checkUser = async (req, res) => {
     const userRef = db.collection("users").doc(doc_id);
     const userDoc = await userRef.get();
 
+    // 🔹 Create dummy user if not found
     if (!userDoc.exists) {
       const dummyUser = getDummyUser(doc_id);
       await userRef.set(dummyUser);
@@ -21,17 +22,20 @@ exports.checkUser = async (req, res) => {
     }
 
     const userData = userDoc.data();
-    const requiredFields = ["email", "phoneNumber", "name", "description"];
-    for (let field of requiredFields) {
-      if (!userData[field]) {
-        return res.status(200).json({
-          success: false,
-          message: "Please complete the registration process",
-          user: userData,
-        });
-      }
+
+    // ✅ Must have either email OR phoneNumber
+    const hasContactInfo = userData.email || userData.phoneNumber;
+    const hasBasicDetails = userData.name && userData.description;
+
+    if (!hasContactInfo || !hasBasicDetails) {
+      return res.status(200).json({
+        success: false,
+        message: "Please complete the registration process",
+        user: userData,
+      });
     }
 
+    // ✅ Address validation
     if (!Array.isArray(userData.addresses) || userData.addresses.length === 0) {
       return res.status(200).json({
         success: false,
@@ -40,6 +44,7 @@ exports.checkUser = async (req, res) => {
       });
     }
 
+    // ✅ Registration complete
     return res.status(200).json({
       success: true,
       message: "User exists and registration is complete",
@@ -56,7 +61,7 @@ exports.checkUser = async (req, res) => {
 };
 
 // ----------------------
-// ✅ CREATE OR UPDATE USER
+// ✅ CREATE OR UPDATE USER (requires name, description, and either email or phoneNumber)
 // ----------------------
 exports.upsertUser = async (req, res) => {
   try {
@@ -67,6 +72,18 @@ exports.upsertUser = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Document id is required",
+      });
+    }
+
+    // ✅ Validation
+    const hasContactInfo = userData.email || userData.phoneNumber;
+    const hasBasicDetails = userData.name && userData.description;
+
+    if (!hasContactInfo || !hasBasicDetails) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "User must have either email or phone number, along with name and description",
       });
     }
 
@@ -159,11 +176,15 @@ exports.addAddress = async (req, res) => {
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
     if (!userDoc.exists) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     const userData = userDoc.data();
-    const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
+    const addresses = Array.isArray(userData.addresses)
+      ? userData.addresses
+      : [];
 
     const newAddress = { id: Date.now().toString(), ...address };
     addresses.push(newAddress);
@@ -205,13 +226,19 @@ exports.updateAddress = async (req, res) => {
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
     if (!userDoc.exists)
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
 
     const userData = userDoc.data();
-    const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
+    const addresses = Array.isArray(userData.addresses)
+      ? userData.addresses
+      : [];
     const index = addresses.findIndex((a) => a.id === addressId);
     if (index === -1)
-      return res.status(404).json({ success: false, message: "Address not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Address not found" });
 
     addresses[index] = { ...addresses[index], ...updatedAddress, id: addressId };
 
@@ -252,26 +279,33 @@ exports.deleteAddress = async (req, res) => {
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
     if (!userDoc.exists)
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
 
     const userData = userDoc.data();
-    const oldAddresses = Array.isArray(userData.addresses) ? userData.addresses : [];
+    const oldAddresses = Array.isArray(userData.addresses)
+      ? userData.addresses
+      : [];
     const updatedAddresses = oldAddresses.filter((a) => a.id !== addressId);
 
     let newSelectedAddress = userData.selectedAddress;
 
     if (userData.selectedAddress?.id === addressId) {
-      newSelectedAddress = updatedAddresses.length > 0 ? updatedAddresses[0] : null;
+      newSelectedAddress =
+        updatedAddresses.length > 0 ? updatedAddresses[0] : null;
     }
 
-    await userRef.update({ addresses: updatedAddresses, selectedAddress: newSelectedAddress });
+    await userRef.update({
+      addresses: updatedAddresses,
+      selectedAddress: newSelectedAddress,
+    });
 
     return res.status(200).json({
       success: true,
-      message:
-        newSelectedAddress
-          ? "Address deleted successfully and selected address updated"
-          : "Address deleted successfully (no addresses left)",
+      message: newSelectedAddress
+        ? "Address deleted successfully and selected address updated"
+        : "Address deleted successfully (no addresses left)",
       addresses: updatedAddresses,
       selectedAddress: newSelectedAddress,
     });
@@ -300,14 +334,20 @@ exports.setSelectedAddress = async (req, res) => {
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
     if (!userDoc.exists)
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
 
     const userData = userDoc.data();
-    const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
+    const addresses = Array.isArray(userData.addresses)
+      ? userData.addresses
+      : [];
     const selected = addresses.find((a) => a.id === addressId);
 
     if (!selected)
-      return res.status(404).json({ success: false, message: "Address not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Address not found" });
 
     await userRef.update({ selectedAddress: selected });
 
