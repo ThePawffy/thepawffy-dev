@@ -13,7 +13,6 @@ exports.checkUser = async (req, res) => {
     if (!userDoc.exists) {
       const dummyUser = getDummyUser(doc_id);
       await userRef.set(dummyUser);
-
       return res.status(200).json({
         success: false,
         message: "User not found",
@@ -100,7 +99,7 @@ exports.upsertUser = async (req, res) => {
 };
 
 // ----------------------
-// ✅ GET USER ADDRESSES
+// ✅ GET USER ADDRESSES (returns full selectedAddress object)
 // ----------------------
 exports.getUserAddress = async (req, res) => {
   try {
@@ -145,14 +144,11 @@ exports.getUserAddress = async (req, res) => {
 };
 
 // ----------------------
-// ✅ CRUD FUNCTIONS FOR ADDRESSES
+// ✅ ADD NEW ADDRESS (auto-select full JSON)
 // ----------------------
-
-// ➕ ADD NEW ADDRESS (auto-select)
 exports.addAddress = async (req, res) => {
   try {
     const { userId, address } = req.body;
-
     if (!userId || !address) {
       return res.status(400).json({
         success: false,
@@ -162,25 +158,19 @@ exports.addAddress = async (req, res) => {
 
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
-
     if (!userDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     const userData = userDoc.data();
     const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
 
-    // ✅ Add unique ID for each address
     const newAddress = { id: Date.now().toString(), ...address };
     addresses.push(newAddress);
 
-    // ✅ Update both addresses array and selectedAddress (full object)
     await userRef.update({
       addresses,
-      selectedAddress: newAddress, // full JSON
+      selectedAddress: newAddress, // full JSON stored
     });
 
     return res.status(200).json({
@@ -199,11 +189,12 @@ exports.addAddress = async (req, res) => {
   }
 };
 
-// ✏️ UPDATE ADDRESS (preserve selected address object)
+// ----------------------
+// ✅ UPDATE ADDRESS (maintain full JSON in selectedAddress)
+// ----------------------
 exports.updateAddress = async (req, res) => {
   try {
     const { userId, addressId, updatedAddress } = req.body;
-
     if (!userId || !addressId || !updatedAddress) {
       return res.status(400).json({
         success: false,
@@ -213,38 +204,22 @@ exports.updateAddress = async (req, res) => {
 
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
-
-    if (!userDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    if (!userDoc.exists)
+      return res.status(404).json({ success: false, message: "User not found" });
 
     const userData = userDoc.data();
     const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
-
     const index = addresses.findIndex((a) => a.id === addressId);
-    if (index === -1) {
-      return res.status(404).json({
-        success: false,
-        message: "Address not found",
-      });
-    }
+    if (index === -1)
+      return res.status(404).json({ success: false, message: "Address not found" });
 
-    // ✅ Merge updates and preserve ID
     addresses[index] = { ...addresses[index], ...updatedAddress, id: addressId };
 
-    // ✅ Update selectedAddress as full object
     let updatedSelectedAddress = userData.selectedAddress;
-    if (userData.selectedAddress?.id === addressId) {
-      updatedSelectedAddress = addresses[index]; // update with new data
-    }
+    if (userData.selectedAddress?.id === addressId)
+      updatedSelectedAddress = addresses[index]; // full object updated
 
-    await userRef.update({
-      addresses,
-      selectedAddress: updatedSelectedAddress,
-    });
+    await userRef.update({ addresses, selectedAddress: updatedSelectedAddress });
 
     return res.status(200).json({
       success: true,
@@ -262,27 +237,22 @@ exports.updateAddress = async (req, res) => {
   }
 };
 
-// 🗑️ DELETE ADDRESS (auto-update selected address object)
+// ----------------------
+// ✅ DELETE ADDRESS (auto-select full JSON if needed)
+// ----------------------
 exports.deleteAddress = async (req, res) => {
   try {
     const { userId, addressId } = req.body;
-
-    if (!userId || !addressId) {
+    if (!userId || !addressId)
       return res.status(400).json({
         success: false,
         message: "userId and addressId are required",
       });
-    }
 
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
-
-    if (!userDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    if (!userDoc.exists)
+      return res.status(404).json({ success: false, message: "User not found" });
 
     const userData = userDoc.data();
     const oldAddresses = Array.isArray(userData.addresses) ? userData.addresses : [];
@@ -290,15 +260,11 @@ exports.deleteAddress = async (req, res) => {
 
     let newSelectedAddress = userData.selectedAddress;
 
-    // ✅ Auto-update selectedAddress if deleted one was selected
     if (userData.selectedAddress?.id === addressId) {
       newSelectedAddress = updatedAddresses.length > 0 ? updatedAddresses[0] : null;
     }
 
-    await userRef.update({
-      addresses: updatedAddresses,
-      selectedAddress: newSelectedAddress,
-    });
+    await userRef.update({ addresses: updatedAddresses, selectedAddress: newSelectedAddress });
 
     return res.status(200).json({
       success: true,
@@ -319,38 +285,29 @@ exports.deleteAddress = async (req, res) => {
   }
 };
 
-// 🌟 SET SELECTED ADDRESS (store full object)
+// ----------------------
+// ✅ SET SELECTED ADDRESS (save full JSON object)
+// ----------------------
 exports.setSelectedAddress = async (req, res) => {
   try {
     const { userId, addressId } = req.body;
-
-    if (!userId || !addressId) {
+    if (!userId || !addressId)
       return res.status(400).json({
         success: false,
         message: "userId and addressId are required",
       });
-    }
 
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
-
-    if (!userDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    if (!userDoc.exists)
+      return res.status(404).json({ success: false, message: "User not found" });
 
     const userData = userDoc.data();
     const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
     const selected = addresses.find((a) => a.id === addressId);
 
-    if (!selected) {
-      return res.status(404).json({
-        success: false,
-        message: "Address not found",
-      });
-    }
+    if (!selected)
+      return res.status(404).json({ success: false, message: "Address not found" });
 
     await userRef.update({ selectedAddress: selected });
 
