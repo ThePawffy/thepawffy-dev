@@ -10,6 +10,7 @@ const bookingRoutes = require("./routes/booking");
 const dashboardRoutes = require("./routes/dashboard");
 const reportRoutes = require("./routes/report");
 const petRoutes = require("./routes/pet");
+const animalRoutes = require("./routes/animal");
 
 // ✅ Middleware
 const errorHandler = require("./middleware/errorHandler");
@@ -39,6 +40,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api", dashboardRoutes);
 app.use("/api", reportRoutes);
 app.use("/api/pets", petRoutes);
+app.use("/api/animal", animalRoutes);
 
 // ✅ Health Check
 app.get("/", (req, res) => {
