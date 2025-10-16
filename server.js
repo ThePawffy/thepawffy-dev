@@ -40,7 +40,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api", dashboardRoutes);
 app.use("/api", reportRoutes);
 app.use("/api/pets", petRoutes);
-app.use("/api/animal", animalRoutes);
+app.use("/api", animalRoutes);
 
 // ✅ Health Check
 app.get("/", (req, res) => {
