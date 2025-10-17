@@ -1,8 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const { searchVendors } = require("../controllers/vendorSearchController");
+const {
+  getNearbyVendors,
+  getVendorServiceDetails,
+} = require("../controllers/vendorSearchController");
 
-// ✅ POST: Search vendors nearby
-router.post("/search-vendors", searchVendors);
+// ✅ POST: Get vendors nearby based on location & type
+router.post("/nearby", getNearbyVendors);
+
+// ✅ POST: Get vendor service details by vendorType
+router.post("/details", getVendorServiceDetails);
 
 module.exports = router;
