@@ -11,7 +11,8 @@ const dashboardRoutes = require("./routes/dashboard");
 const reportRoutes = require("./routes/report");
 const petRoutes = require("./routes/pet");
 const animalRoutes = require("./routes/animal");
-const vendorSearchRoutes = require("./routes/vendorSearch"); // ✅ NEW: Vendor Search Route
+const vendorSearchRoutes = require("./routes/vendorSearch");
+const paymentRoutes = require("./routes/payment");
 
 // ✅ Middleware
 const errorHandler = require("./middleware/errorHandler");
@@ -42,7 +43,8 @@ app.use("/api", dashboardRoutes);
 app.use("/api", reportRoutes);
 app.use("/api/pets", petRoutes);
 app.use("/api", animalRoutes);
-app.use("/api", vendorSearchRoutes); // ✅ NEW: Vendor Search API
+app.use("/api", vendorSearchRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // ✅ Health Check
 app.get("/", (req, res) => {
