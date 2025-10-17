@@ -1,9 +1,8 @@
 const { db } = require("../config/firebase");
-const asyncHandler = require("../middleware/asyncHandler");
 
-// Utility: Calculate distance between two coordinates (in km)
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // Radius of Earth in km
+// 🔹 Helper function to calculate distance in km using Haversine formula
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the Earth in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
@@ -13,60 +12,83 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  const d = R * c; // Distance in km
+  return d;
 }
 
-// ✅ POST: Search vendors nearby
-exports.searchVendors = asyncHandler(async (req, res) => {
-  const { searching_for, latitude, longitude } = req.body;
+exports.searchVendors = async (req, res) => {
+  try {
+    const { searching_for, latitude, longitude } = req.body;
 
-  if (!searching_for || !latitude || !longitude) {
-    return res.status(400).json({
-      success: false,
-      message: "searching_for, latitude, and longitude are required",
-    });
-  }
+    // ✅ Validate inputs
+    if (
+      !searching_for ||
+      latitude === undefined ||
+      longitude === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing required fields: searching_for, latitude, longitude",
+      });
+    }
 
-  // 🔹 Fetch users where role == vendor
-  const vendorsSnapshot = await db.collection("users").where("role", "==", "vendor").get();
+    // ✅ Fetch all users with role 'vendor'
+    const usersRef = db.collection("users");
+    const snapshot = await usersRef.where("role", "==", "vendor").get();
 
-  if (vendorsSnapshot.empty) {
-    return res.status(404).json({ success: false, message: "No vendors found" });
-  }
+    if (snapshot.empty) {
+      return res.status(404).json({
+        success: false,
+        message: "No vendors found",
+      });
+    }
 
-  const nearbyVendors = [];
+    const nearbyVendors = [];
 
-  vendorsSnapshot.forEach((doc) => {
-    const vendor = doc.data();
+    // ✅ Iterate vendors and apply matching logic
+    snapshot.forEach((doc) => {
+      const vendor = doc.data();
 
-    // Check if vendorType matches searching_for
-    if (vendor.vendorType && vendor.vendorType.toLowerCase() === searching_for.toLowerCase()) {
-      const vendorLat = vendor.latitude;
-      const vendorLon = vendor.longitude;
+      if (
+        vendor.vendorType === searching_for &&
+        vendor.zoneCenter &&
+        vendor.zoneCenter.latitude &&
+        vendor.zoneCenter.longitude
+      ) {
+        const vendorLat = vendor.zoneCenter.latitude;
+        const vendorLon = vendor.zoneCenter.longitude;
 
-      if (vendorLat && vendorLon) {
-        const distance = calculateDistance(latitude, longitude, vendorLat, vendorLon);
+        const distance = getDistanceFromLatLonInKm(
+          latitude,
+          longitude,
+          vendorLat,
+          vendorLon
+        );
+
+        // ✅ Include vendor if within 25 km
         if (distance <= 25) {
           nearbyVendors.push({
             id: doc.id,
             distance_km: parseFloat(distance.toFixed(2)),
-            ...vendor,
+            ...vendor, // return complete vendor document
           });
         }
       }
-    }
-  });
+    });
 
-  if (nearbyVendors.length === 0) {
-    return res.status(404).json({
+    // ✅ Return result
+    return res.status(200).json({
+      success: true,
+      count: nearbyVendors.length,
+      vendors: nearbyVendors,
+    });
+  } catch (error) {
+    console.error("Error searching vendors:", error);
+    return res.status(500).json({
       success: false,
-      message: `No ${searching_for} vendors found within 25 km radius`,
+      message: "Internal Server Error",
+      error: error.message,
     });
   }
-
-  res.status(200).json({
-    success: true,
-    count: nearbyVendors.length,
-    vendors: nearbyVendors,
-  });
-});
+};
