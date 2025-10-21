@@ -1,3 +1,5 @@
+// server.js
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -32,9 +34,18 @@ app.use(
   })
 );
 
+// ✅ 1. Stripe Webhook route MUST be placed BEFORE express.json()
+// Stripe needs the raw body for signature verification
+app.use(
+  "/api/payments/webhook",
+  bodyParser.raw({ type: "application/json" }),
+  paymentRoutes
+);
+
+// ✅ 2. Use JSON parser for all other routes
 app.use(bodyParser.json());
 
-// ✅ Register Routes
+// ✅ 3. Register All Routes
 app.use("/api", userRoutes);
 app.use("/api/lost-pets", lostPetRoutes);
 app.use("/api/found-pets", foundPetRoutes);
@@ -46,9 +57,9 @@ app.use("/api", animalRoutes);
 app.use("/api", vendorSearchRoutes);
 app.use("/api/payments", paymentRoutes);
 
-// ✅ Health Check
+// ✅ Health Check Route
 app.get("/", (req, res) => {
-  res.send("Node.js + Firebase API is running 🚀");
+  res.send("🐾 The Pawffy Node.js + Firebase API is running successfully 🚀");
 });
 
 // ✅ Error Handling Middleware
@@ -56,4 +67,4 @@ app.use(errorHandler);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
