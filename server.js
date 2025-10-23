@@ -3,7 +3,6 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const { ClerkExpressRequireAuth, ClerkExpressWithAuth } = require("@clerk/clerk-sdk-node");
 
 // ✅ Import Routes
 const userRoutes = require("./routes/user");
@@ -46,26 +45,21 @@ app.use(
 // ✅ 2. Use JSON parser for all other routes
 app.use(bodyParser.json());
 
-// ✅ 3. Initialize Clerk middleware globally (adds req.auth if token present)
-app.use(ClerkExpressWithAuth());
-
-// ✅ 4. Public Routes (no Clerk auth required)
+// ✅ 3. Register All Routes
 app.use("/api", userRoutes);
+app.use("/api/lost-pets", lostPetRoutes);
+app.use("/api/found-pets", foundPetRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api", dashboardRoutes);
 app.use("/api", reportRoutes);
+app.use("/api/pets", petRoutes);
+app.use("/api", animalRoutes);
 app.use("/api", vendorSearchRoutes);
 app.use("/api/payments", paymentRoutes);
 
-// ✅ 5. Protected Routes (Clerk authentication required)
-app.use("/api/lost-pets", ClerkExpressRequireAuth(), lostPetRoutes);
-app.use("/api/found-pets", ClerkExpressRequireAuth(), foundPetRoutes);
-app.use("/api/bookings", ClerkExpressRequireAuth(), bookingRoutes);
-app.use("/api/pets", ClerkExpressRequireAuth(), petRoutes);
-app.use("/api", ClerkExpressRequireAuth(), dashboardRoutes);
-app.use("/api", ClerkExpressRequireAuth(), animalRoutes);
-
 // ✅ Health Check Route
 app.get("/", (req, res) => {
-  res.send("🐾 The Pawffy Node.js + Clerk + Firebase API is running successfully 🚀");
+  res.send("🐾 The Pawffy Node.js + Firebase API is running successfully 🚀");
 });
 
 // ✅ Error Handling Middleware
