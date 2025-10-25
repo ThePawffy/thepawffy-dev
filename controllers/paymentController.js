@@ -4,7 +4,7 @@ const { db } = require("../config/firebase");
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// ✅ Create Checkout Session
+// ✅ Create Checkout Session (with Apple Pay + Automatic Tax)
 exports.createCheckoutSession = async (req, res) => {
   try {
     const { amount, currency, customerEmail, description } = req.body;
@@ -18,26 +18,41 @@ exports.createCheckoutSession = async (req, res) => {
 
     // ✅ Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       mode: "payment",
+
+      // ✅ Payment methods include Apple Pay, Google Pay, etc. (via "card")
+      payment_method_types: ["card"],
+
       customer_email: customerEmail,
+
+      // ✅ Enable automatic tax calculation
+      automatic_tax: { enabled: true },
+
+      // ✅ Optional: Collect billing/shipping for accurate tax
+      billing_address_collection: "required",
+      shipping_address_collection: {
+        allowed_countries: ["US", "IN", "CA", "GB", "AU"], // adjust to your target countries
+      },
+
       line_items: [
         {
           price_data: {
             currency,
             product_data: {
               name: description || "Custom Payment",
+              tax_code: "txcd_99999999", // optional Stripe tax code (customize per product type)
             },
-            unit_amount: Math.round(amount * 100), // convert ₹ to paise or $ to cents
+            unit_amount: Math.round(amount * 100),
           },
           quantity: 1,
         },
       ],
+
+      // ✅ Dynamic URLs (use your real frontend URLs)
       success_url: `https://your-frontend-domain.com/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `https://your-frontend-domain.com/payment-cancelled`,
     });
 
-    // ✅ Send session URL to frontend
     return res.status(200).json({ success: true, url: session.url });
   } catch (error) {
     console.error("Stripe Error:", error);
@@ -45,13 +60,12 @@ exports.createCheckoutSession = async (req, res) => {
   }
 };
 
-// ✅ Handle Stripe Webhook
+// ✅ Handle Stripe Webhook (unchanged)
 exports.handleWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
 
   try {
-    // Stripe requires RAW body for webhook validation
     event = stripe.webhooks.constructEvent(
       req.rawBody,
       sig,
@@ -62,7 +76,6 @@ exports.handleWebhook = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // 💰 Handle successful payment event
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
 
@@ -71,6 +84,9 @@ exports.handleWebhook = async (req, res) => {
         email: session.customer_email,
         amount_total: session.amount_total / 100,
         currency: session.currency,
+        tax_amount: session.total_details?.amount_tax
+          ? session.total_details.amount_tax / 100
+          : 0,
         payment_status: session.payment_status,
         session_id: session.id,
         createdAt: new Date(),
