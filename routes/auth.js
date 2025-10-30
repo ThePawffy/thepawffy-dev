@@ -1,9 +1,9 @@
-// routes/auth.js
 const express = require("express");
 const router = express.Router();
-const { sendOTP, verifyOTP } = require("../controllers/authController");
+const { clerkLogin } = require("../controllers/authController");
+const verifyClerkToken = require("../middleware/verifyClerkToken");
 
-router.post("/send-otp", sendOTP);
-router.post("/verify-otp", verifyOTP);
+// ✅ POST /api/auth/clerk-login
+router.post("/clerk-login", verifyClerkToken, clerkLogin);
 
 module.exports = router;
