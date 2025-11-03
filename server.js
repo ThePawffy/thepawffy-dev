@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 
 // ✅ Import Routes
+const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
 const lostPetRoutes = require("./routes/lostPet");
 const foundPetRoutes = require("./routes/foundPet");
@@ -45,7 +46,8 @@ app.use(
 // ✅ 2. Use JSON parser for all other routes
 app.use(bodyParser.json());
 
-// ✅ 3. Register All Routes
+// ✅ 3. Register All API Routes
+app.use("/api/auth", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api/lost-pets", lostPetRoutes);
 app.use("/api/found-pets", foundPetRoutes);
