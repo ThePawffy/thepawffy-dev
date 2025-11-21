@@ -16,6 +16,7 @@ const petRoutes = require("./routes/pet");
 const animalRoutes = require("./routes/animal");
 const vendorSearchRoutes = require("./routes/vendorSearch");
 const paymentRoutes = require("./routes/payment");
+const vetBookingRoutes = require("./routes/vetBookingRoutes");
 
 // ✅ Middleware
 const errorHandler = require("./middleware/errorHandler");
@@ -58,6 +59,7 @@ app.use("/api/pets", petRoutes);
 app.use("/api", animalRoutes);
 app.use("/api", vendorSearchRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/bookings", vetBookingRoutes);
 
 // ✅ Health Check Route
 app.get("/", (req, res) => {
