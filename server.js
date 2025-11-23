@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
 
-// ✅ Import Routes
+// Routes
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
 const lostPetRoutes = require("./routes/lostPet");
@@ -16,16 +16,15 @@ const reportRoutes = require("./routes/report");
 const petRoutes = require("./routes/pet");
 const animalRoutes = require("./routes/animal");
 const vendorSearchRoutes = require("./routes/vendorSearch");
-const paymentRoutes = require("./routes/payment");
 const vetBookingRoutes = require("./routes/vetBookingRoutes");
+const paymentRoutes = require("./routes/payment");
 
-// Middleware
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
 // ------------------------------------------------------------
-// ✅ STEP 1 — Enable CORS
+// CORS
 // ------------------------------------------------------------
 app.use(
   cors({
@@ -40,33 +39,29 @@ app.use(
 );
 
 // ------------------------------------------------------------
-// ✅ STEP 2 — Apple Pay Verification File Hosting
+// Serve Apple Pay Verification File
 // ------------------------------------------------------------
-// Must serve the `.well-known` folder publicly.
-// Required by Stripe for Apple Pay domain verification.
 app.use(
   "/.well-known",
-  express.static(path.join(__dirname, ".well-known"), {
-    dotfiles: "allow", // allow .well-known
-  })
+  express.static(path.join(__dirname, ".well-known"), { dotfiles: "allow" })
 );
 
 // ------------------------------------------------------------
-// ✅ STEP 3 — Stripe Webhook (Raw body BEFORE express.json())
+// **STRIPE WEBHOOK MUST BE RAW BODY AND ISOLATED**
 // ------------------------------------------------------------
-app.use(
+app.post(
   "/api/payments/webhook",
   bodyParser.raw({ type: "application/json" }),
-  paymentRoutes
+  require("./controllers/paymentController").handleWebhook
 );
 
 // ------------------------------------------------------------
-// ✅ STEP 4 — JSON Parser for all other routes
+// JSON BODY PARSER FOR EVERYTHING ELSE
 // ------------------------------------------------------------
 app.use(bodyParser.json());
 
 // ------------------------------------------------------------
-// ✅ STEP 5 — API Routes
+// API Routes
 // ------------------------------------------------------------
 app.use("/api/auth", authRoutes);
 app.use("/api", userRoutes);
@@ -78,25 +73,23 @@ app.use("/api", reportRoutes);
 app.use("/api/pets", petRoutes);
 app.use("/api", animalRoutes);
 app.use("/api", vendorSearchRoutes);
-app.use("/api/payments", paymentRoutes);
 app.use("/api/bookings", vetBookingRoutes);
+app.use("/api/payments", paymentRoutes); // create-checkout-session lives here
 
 // ------------------------------------------------------------
-// ✅ Health Check Route
+// Health Check
 // ------------------------------------------------------------
 app.get("/", (req, res) => {
   res.send("🐾 The Pawffy Node.js + Firebase API is running successfully 🚀");
 });
 
 // ------------------------------------------------------------
-// ✅ Error Handler
+// Error Handler
 // ------------------------------------------------------------
 app.use(errorHandler);
 
 // ------------------------------------------------------------
-// ✅ Start Server
+// Start Server
 // ------------------------------------------------------------
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`✅ Server running on port ${PORT}`)
-);
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
