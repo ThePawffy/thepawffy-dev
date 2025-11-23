@@ -1,71 +1,61 @@
-// models/bookingModel.js
-const Joi = require('joi');
+const Joi = require("joi");
 
-const bookingSchema = Joi.object({
-  additionalNote: Joi.string().allow('', null),
-  address: Joi.object().unknown(true).allow(null),
-  city: Joi.string().allow('', null),
-  country: Joi.string().allow('', null),
-  direction: Joi.string().allow('', null),
-  full_address: Joi.string().allow('', null),
-  houseNo: Joi.string().allow('', null),
-  landmark: Joi.string().allow('', null),
-  latitude: Joi.number().precision(12).allow(null, ''),
-  locality: Joi.string().allow('', null),
-  longitude: Joi.number().precision(12).allow(null, ''),
-  postal_code: Joi.string().allow('', null),
-  state: Joi.string().allow('', null),
-  tag: Joi.string().allow('', null),
-  bookedAt: Joi.string().required(),        // required as per your requirement
-  bookingId: Joi.string().allow('', null),
-  bookingType: Joi.string().required(),
-  catCount: Joi.any().allow('', null),
-  chatID: Joi.any().allow(null, ''),
-  createdAt: Joi.string().required(),
-  dogCount: Joi.any().allow('', null),
-  durationOfVideoCalling: Joi.any().allow('', null),
-  endDate: Joi.any().allow('', null),
-  estimateDeliveryDate: Joi.any().allow('', null),
-  extraChargesPayed: Joi.any().allow('', null),
-  feedback: Joi.object().unknown(true).allow(null),
-  feedbackText: Joi.string().allow('', null),
-  rating: Joi.number().min(0).allow(null).default(0),
-  receiverId: Joi.any().allow('', null),
-  senderId: Joi.any().allow('', null),
-  hoursCompleted: Joi.any().allow('', null),
-  hoursExtra: Joi.any().allow('', null),
-  note: Joi.string().allow('', null),
-  packageService: Joi.any().allow(null),
-  partnerDetails: Joi.object().unknown(true).required(),
-  addresses: Joi.array().items(Joi.object().unknown(true)).allow(null),
-  pet: Joi.object().unknown(true).allow(null),
-  pets: Joi.array().items(Joi.object().unknown(true)).allow(null),
-  petDetails: Joi.object().unknown(true).allow(null),
-  petAdoptionService: Joi.array().items(Joi.object().unknown(true)).allow(null),
-  groomerRoleService: Joi.object().unknown(true).allow(null),
-  services: Joi.array().items(Joi.object().unknown(true)).allow(null),
-  packageServiceArray: Joi.array().items(Joi.object().unknown(true)).allow(null),
-  serviceDetails: Joi.array().items(Joi.object().unknown(true)).allow(null),
-  serviceList: Joi.array().items(Joi.object().unknown(true)).allow(null),
-  zoneCenter: Joi.object().unknown(true).allow(null),
-  zoneNorthEast: Joi.object().unknown(true).allow(null),
-  zoneSouthWest: Joi.object().unknown(true).allow(null),
-  zoneRadius: Joi.number().allow(null).default(5000),
-  paymentMethod: Joi.string().allow('', null),
-  paymentStatus: Joi.string().allow('', null),
-  selectedDate: Joi.string().allow('', null),
-  selectedTime: Joi.string().allow('', null),
-  status: Joi.string().allow('', null),
-  totalPrice: Joi.string().allow('', null),
-  userDetails: Joi.object().unknown(true).required(),
-  subscription: Joi.object().unknown(true).allow(null),
-  termsConfirmation: Joi.object().unknown(true).allow(null),
-  walkingBookingModel: Joi.object().unknown(true).allow(null),
-  walkTimes: Joi.array().items(Joi.object().unknown(true)).allow(null)
-}).unknown(true); // allow additional fields
+const slotTimeSchema = Joi.object({
+  morningSlot: Joi.string().allow(""),
+  eveningSlot: Joi.string().allow(""),
+});
 
-function validateBookingPayload(payload) {
-  return bookingSchema.validate(payload, { stripUnknown: false });
-}
+const walkingBookingSchema = Joi.object({
+  selectedAddress: Joi.object({
+    fullAddress: Joi.string().required(),
+    latitude: Joi.number().optional(),
+    longitude: Joi.number().optional(),
+    city: Joi.string().optional(),
+    state: Joi.string().optional(),
+    country: Joi.string().optional(),
+    postalCode: Joi.string().optional(),
+  }).required(),
 
-module.exports = { validateBookingPayload };
+  selectedDays: Joi.string().required(),
+
+  selectedPetList: Joi.array()
+    .items(
+      Joi.object({
+        name: Joi.string().required(),
+        petType: Joi.string().required(),
+        breed: Joi.string().allow(""),
+        age: Joi.string().allow(""),
+        gender: Joi.string().allow(""),
+        color: Joi.string().allow(""),
+        imageUrl: Joi.string().uri().allow(""),
+        height: Joi.string().allow(""),
+        weight: Joi.string().allow(""),
+      })
+    )
+    .min(1)
+    .required(),
+
+  selectedService: Joi.object({
+    title: Joi.string().required(),
+    description: Joi.string().allow(""),
+    price: Joi.number().optional(),
+  }).required(),
+
+  selectedPackage: Joi.object().allow(null, {}),
+  isPackage: Joi.boolean().required(),
+
+  userId: Joi.string().required(),
+
+  partnerID: Joi.string().required(), // updated
+  partnerId: Joi.string().optional(), // accept both
+
+  bookingType: Joi.string().valid("walking").required(),
+  walkingType: Joi.string().valid("Once a day", "Twice a day").required(),
+
+  slotTime: slotTimeSchema.required(),
+  walkingDuration: Joi.string().required(),
+
+  PaymentStatus: Joi.string().allow("", "pending", "paid"),
+});
+
+module.exports = { walkingBookingSchema };
