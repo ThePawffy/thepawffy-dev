@@ -1,25 +1,30 @@
 const { db } = require("../config/firebase");
 const asyncHandler = require("../middleware/asyncHandler");
 
-// POST /api/bookings/walking
 exports.createWalkingBooking = asyncHandler(async (req, res) => {
   try {
+    // Support both partnerID and partnerId
+    const partnerID = req.body.partnerID || req.body.partnerId;
+
+    // Support both PaymentStatus and paymentStatus
+    const PaymentStatus =
+      req.body.PaymentStatus || req.body.paymentStatus || "pending";
+
     const {
       selectedAddress,
       selectedDays,
       selectedPetList,
       selectedService,
-      selectedPackage,
+      selectedPackage = {},
       isPackage,
       userId,
-      partnerID,
       bookingType,
       walkingType,
       slotTime,
       walkingDuration,
-      PaymentStatus,
     } = req.body;
 
+    // Validate required fields
     if (!userId || !partnerID || !bookingType) {
       return res.status(400).json({
         success: false,
@@ -27,7 +32,7 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
       });
     }
 
-    // 🔹 Fetch user and partner data from Firebase
+    // Fetch user and partner info
     const userRef = db.collection("users").doc(userId);
     const partnerRef = db.collection("users").doc(partnerID);
 
@@ -39,18 +44,20 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
     const userData = userSnap.exists ? userSnap.data() : {};
     const partnerData = partnerSnap.exists ? partnerSnap.data() : {};
 
-    // 🔹 Slot time logic
+    // Final slot logic
     let finalSlot = {};
     if (walkingType === "Once a day") {
-      finalSlot = { morningSlot: slotTime.morningSlot || "" };
+      finalSlot = {
+        morningSlot: slotTime?.morningSlot || "",
+      };
     } else if (walkingType === "Twice a day") {
       finalSlot = {
-        morningSlot: slotTime.morningSlot || "",
-        eveningSlot: slotTime.eveningSlot || "",
+        morningSlot: slotTime?.morningSlot || "",
+        eveningSlot: slotTime?.eveningSlot || "",
       };
     }
 
-    // 🔹 Merge all data
+    // Build booking data
     const bookingData = {
       bookingType: bookingType || "walking",
       walkingType,
@@ -58,23 +65,23 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
       selectedPetList,
       selectedService,
       selectedPackage,
-      isPackage,
+      isPackage: isPackage || false,
       walkingDuration,
-      PaymentStatus: PaymentStatus || "Pending",
+      PaymentStatus,
       selectedAddress: selectedAddress || userData.address || {},
       slotTime: finalSlot,
       userDetails: {
         userId,
-        ...(userData || {}),
+        ...userData,
       },
       partnerDetails: {
         partnerID,
-        ...(partnerData || {}),
+        ...partnerData,
       },
       createdAt: new Date().toISOString(),
     };
 
-    // 🔹 Save to bookings collection
+    // Save booking
     const newBookingRef = db.collection("bookings").doc();
     await newBookingRef.set(bookingData);
 
