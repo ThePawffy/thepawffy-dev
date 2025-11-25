@@ -1,14 +1,42 @@
 const { db } = require("../config/firebase");
 const asyncHandler = require("../middleware/asyncHandler");
+const { walkingBookingSchema } = require("../models/walkingBookingModel");
 
 exports.createWalkingBooking = asyncHandler(async (req, res) => {
   try {
-    // Support both partnerID and partnerId
     const partnerID = req.body.partnerID || req.body.partnerId;
 
     // Support both PaymentStatus and paymentStatus
     const PaymentStatus =
       req.body.PaymentStatus || req.body.paymentStatus || "pending";
+
+    // Build validation object from raw input (before Firestore formatting)
+    const validationData = {
+      selectedAddress: req.body.selectedAddress,
+      selectedDays: req.body.selectedDays,
+      selectedPetList: req.body.selectedPetList,
+      selectedService: req.body.selectedService,
+      selectedPackage: req.body.selectedPackage || {},
+      isPackage: req.body.isPackage,
+      userId: req.body.userId,
+      vendorID: partnerID, // mapped for schema
+      bookingType: req.body.bookingType,
+      walkingType: req.body.walkingType,
+      slotTime: req.body.slotTime,
+      walkingDuration: req.body.walkingDuration,
+      PaymentStatus,
+    };
+
+    // Joi Validation
+    const { error } = walkingBookingSchema.validate(validationData);
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation Error",
+        details: error.details[0].message,
+      });
+    }
 
     const {
       selectedAddress,
@@ -24,15 +52,7 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
       walkingDuration,
     } = req.body;
 
-    // Validate required fields
-    if (!userId || !partnerID || !bookingType) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields: userId, partnerID, bookingType",
-      });
-    }
-
-    // Fetch user and partner info
+    // Fetch user & partner details
     const userRef = db.collection("users").doc(userId);
     const partnerRef = db.collection("users").doc(partnerID);
 
@@ -44,7 +64,7 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
     const userData = userSnap.exists ? userSnap.data() : {};
     const partnerData = partnerSnap.exists ? partnerSnap.data() : {};
 
-    // Final slot logic
+    // Final slot logic for Firestore
     let finalSlot = {};
     if (walkingType === "Once a day") {
       finalSlot = {
@@ -57,27 +77,21 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
       };
     }
 
-    // Build booking data
+    // Build booking object for Firestore
     const bookingData = {
-      bookingType: bookingType || "walking",
+      bookingType,
       walkingType,
       selectedDays,
       selectedPetList,
       selectedService,
       selectedPackage,
-      isPackage: isPackage || false,
+      isPackage,
       walkingDuration,
       PaymentStatus,
-      selectedAddress: selectedAddress || userData.address || {},
+      selectedAddress,
       slotTime: finalSlot,
-      userDetails: {
-        userId,
-        ...userData,
-      },
-      partnerDetails: {
-        partnerID,
-        ...partnerData,
-      },
+      userDetails: { userId, ...userData },
+      partnerDetails: { partnerID, ...partnerData },
       createdAt: new Date().toISOString(),
     };
 
