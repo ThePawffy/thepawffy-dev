@@ -4,7 +4,7 @@ const { db } = require("../config/firebase");
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// ✅ Create Checkout Session (with Apple Pay + Automatic Tax)
+// ✅ Create Checkout Session (with deep link success_url)
 exports.createCheckoutSession = async (req, res) => {
   try {
     const { amount, currency, customerEmail, description } = req.body;
@@ -16,31 +16,22 @@ exports.createCheckoutSession = async (req, res) => {
       });
     }
 
-    // ✅ Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-
-      // ✅ Payment methods include Apple Pay, Google Pay, etc. (via "card")
       payment_method_types: ["card"],
-
       customer_email: customerEmail,
-
-      // ✅ Enable automatic tax calculation
       automatic_tax: { enabled: true },
-
-      // ✅ Optional: Collect billing/shipping for accurate tax
       billing_address_collection: "required",
       shipping_address_collection: {
-        allowed_countries: ["US", "IN", "CA", "GB", "AU"], // adjust to your target countries
+        allowed_countries: ["US", "IN", "CA", "GB", "AU"],
       },
-
       line_items: [
         {
           price_data: {
             currency,
             product_data: {
               name: description || "Custom Payment",
-              tax_code: "txcd_99999999", // optional Stripe tax code (customize per product type)
+              tax_code: "txcd_99999999",
             },
             unit_amount: Math.round(amount * 100),
           },
@@ -48,9 +39,13 @@ exports.createCheckoutSession = async (req, res) => {
         },
       ],
 
-      // ✅ Dynamic URLs (use your real frontend URLs)
-      success_url: `https://your-frontend-domain.com/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://your-frontend-domain.com/payment-cancelled`,
+      // 🔴 OLD:
+      // success_url: `https://your-frontend-domain.com/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      // cancel_url: `https://your-frontend-domain.com/payment-cancelled`,
+
+      // ✅ NEW: deep links for iOS app
+      success_url: `pawffy://payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `pawffy://payment-cancelled`,
     });
 
     return res.status(200).json({ success: true, url: session.url });
@@ -59,6 +54,7 @@ exports.createCheckoutSession = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // ✅ Handle Stripe Webhook (unchanged)
 exports.handleWebhook = async (req, res) => {
