@@ -63,11 +63,12 @@ exports.createCheckoutSession = async (req, res) => {
 // ✅ Handle Stripe Webhook (unchanged)
 exports.handleWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
+
   let event;
 
   try {
     event = stripe.webhooks.constructEvent(
-      req.rawBody,
+      req.body, // FIXED
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
@@ -75,6 +76,8 @@ exports.handleWebhook = async (req, res) => {
     console.error("⚠️ Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
+  console.log(`🔔 Received event: ${event.type}`);
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
@@ -84,19 +87,17 @@ exports.handleWebhook = async (req, res) => {
         email: session.customer_email,
         amount_total: session.amount_total / 100,
         currency: session.currency,
-        tax_amount: session.total_details?.amount_tax
-          ? session.total_details.amount_tax / 100
-          : 0,
         payment_status: session.payment_status,
         session_id: session.id,
         createdAt: new Date(),
       });
 
-      console.log("✅ Payment saved in Firestore:", session.customer_email);
+      console.log("✅ Saved payment for:", session.customer_email);
     } catch (error) {
-      console.error("❌ Firestore Error:", error);
+      console.error("❌ Firestore error:", error);
     }
   }
 
   res.json({ received: true });
 };
+
