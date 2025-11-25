@@ -4,19 +4,22 @@ const { walkingBookingSchema } = require("../models/walkingBookingModel");
 
 exports.createWalkingBooking = asyncHandler(async (req, res) => {
   try {
+    // Normalize partner ID
     const partnerID = req.body.partnerID || req.body.partnerId;
+
+    // Normalize payment status
     const PaymentStatus =
       req.body.PaymentStatus || req.body.paymentStatus || "pending";
 
     const {
       userId,
-      partnerId, // optional - not required if partnerID used
       bookingType,
       walkingType,
       slotTime,
       walkingDuration,
     } = req.body;
 
+    // Basic required validation (before accessing Firestore)
     if (!userId || !partnerID || !bookingType) {
       return res.status(400).json({
         success: false,
@@ -24,18 +27,19 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
       });
     }
 
-    // Fetch user & partner BEFORE validation so we can use user's saved address if missing
-    const userRef = db.collection("users").doc(userId);
-    const partnerRef = db.collection("users").doc(partnerID);
+    // Fetch user & partner BEFORE validation (needed for fallback address)
+    const [userSnap, partnerSnap] = await Promise.all([
+      db.collection("users").doc(userId).get(),
+      db.collection("users").doc(partnerID).get(),
+    ]);
 
-    const [userSnap, partnerSnap] = await Promise.all([userRef.get(), partnerRef.get()]);
     const userData = userSnap.exists ? userSnap.data() : {};
     const partnerData = partnerSnap.exists ? partnerSnap.data() : {};
 
-    // decide selectedAddress: prefer request, fall back to user's saved address
+    // Use request address OR fallback to user's saved address
     const selectedAddress = req.body.selectedAddress || userData.address || {};
 
-    // Build validation object
+    // Build validation object (MUST MATCH Joi schema)
     const validationData = {
       selectedAddress,
       selectedDays: req.body.selectedDays,
@@ -44,7 +48,7 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
       selectedPackage: req.body.selectedPackage || {},
       isPackage: req.body.isPackage,
       userId,
-      vendorID: partnerID, // map to schema field name
+      partnerID, // <-- updated according to new schema
       bookingType: bookingType || "walking",
       walkingType,
       slotTime: slotTime || {},
@@ -62,18 +66,19 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
       });
     }
 
-    // Final slot logic for Firestore
-    let finalSlot = {};
-    if (walkingType === "Once a day") {
-      finalSlot = { morningSlot: slotTime?.morningSlot || "" };
-    } else if (walkingType === "Twice a day") {
-      finalSlot = {
-        morningSlot: slotTime?.morningSlot || "",
-        eveningSlot: slotTime?.eveningSlot || "",
-      };
-    }
+    // Final slot logic (clean & reliable)
+    const finalSlot =
+      walkingType === "Twice a day"
+        ? {
+            morningSlot: slotTime?.morningSlot || "",
+            eveningSlot: slotTime?.eveningSlot || "",
+          }
+        : {
+            // Once a day
+            morningSlot: slotTime?.morningSlot || "",
+          };
 
-    // Build booking object for Firestore
+    // Build Firestore booking entry
     const bookingData = {
       bookingType,
       walkingType,
@@ -95,7 +100,7 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
     const newBookingRef = db.collection("bookings").doc();
     await newBookingRef.set(bookingData);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Walking booking created successfully",
       bookingId: newBookingRef.id,
@@ -103,7 +108,7 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Booking creation error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Server error while creating booking",
       error: error.message,
