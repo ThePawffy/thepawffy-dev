@@ -32,6 +32,7 @@ app.use(
       "http://localhost:3000",
       "https://thepawffy-dev.onrender.com",
       "https://pawrescue-orpin.vercel.app",
+      "https://thepawffy-dev.fly.dev",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
