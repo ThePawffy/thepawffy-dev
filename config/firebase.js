@@ -1,12 +1,19 @@
 const admin = require("firebase-admin");
 
 if (!admin.apps.length) {
+  const base64Key = process.env.FIREBASE_KEY_BASE64;
+
+  if (!base64Key) throw new Error("Missing Firebase KEY");
+
+  const serviceAccountJSON = Buffer.from(base64Key, "base64").toString("utf8");
+
+  const serviceAccount = JSON.parse(serviceAccountJSON);
+
+  // Fix key formatting
+  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+
   admin.initializeApp({
-    credential: admin.credential.cert({
-      project_id: process.env.FIREBASE_PROJECT_ID,
-      client_email: process.env.FIREBASE_CLIENT_EMAIL,
-      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    }),
+    credential: admin.credential.cert(serviceAccount),
   });
 }
 
