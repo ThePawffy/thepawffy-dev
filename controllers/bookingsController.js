@@ -5,31 +5,55 @@ const { walkingBookingSchema } = require("../models/walkingBookingModel");
 exports.createWalkingBooking = asyncHandler(async (req, res) => {
   try {
     const partnerID = req.body.partnerID || req.body.partnerId;
-
-    // Support both PaymentStatus and paymentStatus
     const PaymentStatus =
       req.body.PaymentStatus || req.body.paymentStatus || "pending";
 
-    // Build validation object from raw input (before Firestore formatting)
+    const {
+      userId,
+      partnerId, // optional - not required if partnerID used
+      bookingType,
+      walkingType,
+      slotTime,
+      walkingDuration,
+    } = req.body;
+
+    if (!userId || !partnerID || !bookingType) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: userId, partnerID, bookingType",
+      });
+    }
+
+    // Fetch user & partner BEFORE validation so we can use user's saved address if missing
+    const userRef = db.collection("users").doc(userId);
+    const partnerRef = db.collection("users").doc(partnerID);
+
+    const [userSnap, partnerSnap] = await Promise.all([userRef.get(), partnerRef.get()]);
+    const userData = userSnap.exists ? userSnap.data() : {};
+    const partnerData = partnerSnap.exists ? partnerSnap.data() : {};
+
+    // decide selectedAddress: prefer request, fall back to user's saved address
+    const selectedAddress = req.body.selectedAddress || userData.address || {};
+
+    // Build validation object
     const validationData = {
-      selectedAddress: req.body.selectedAddress,
+      selectedAddress,
       selectedDays: req.body.selectedDays,
       selectedPetList: req.body.selectedPetList,
       selectedService: req.body.selectedService,
       selectedPackage: req.body.selectedPackage || {},
       isPackage: req.body.isPackage,
-      userId: req.body.userId,
-      vendorID: partnerID, // mapped for schema
-      bookingType: req.body.bookingType,
-      walkingType: req.body.walkingType,
-      slotTime: req.body.slotTime,
-      walkingDuration: req.body.walkingDuration,
+      userId,
+      vendorID: partnerID, // map to schema field name
+      bookingType: bookingType || "walking",
+      walkingType,
+      slotTime: slotTime || {},
+      walkingDuration,
       PaymentStatus,
     };
 
-    // Joi Validation
+    // Validate with Joi
     const { error } = walkingBookingSchema.validate(validationData);
-
     if (error) {
       return res.status(400).json({
         success: false,
@@ -38,38 +62,10 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
       });
     }
 
-    const {
-      selectedAddress,
-      selectedDays,
-      selectedPetList,
-      selectedService,
-      selectedPackage = {},
-      isPackage,
-      userId,
-      bookingType,
-      walkingType,
-      slotTime,
-      walkingDuration,
-    } = req.body;
-
-    // Fetch user & partner details
-    const userRef = db.collection("users").doc(userId);
-    const partnerRef = db.collection("users").doc(partnerID);
-
-    const [userSnap, partnerSnap] = await Promise.all([
-      userRef.get(),
-      partnerRef.get(),
-    ]);
-
-    const userData = userSnap.exists ? userSnap.data() : {};
-    const partnerData = partnerSnap.exists ? partnerSnap.data() : {};
-
     // Final slot logic for Firestore
     let finalSlot = {};
     if (walkingType === "Once a day") {
-      finalSlot = {
-        morningSlot: slotTime?.morningSlot || "",
-      };
+      finalSlot = { morningSlot: slotTime?.morningSlot || "" };
     } else if (walkingType === "Twice a day") {
       finalSlot = {
         morningSlot: slotTime?.morningSlot || "",
@@ -81,11 +77,11 @@ exports.createWalkingBooking = asyncHandler(async (req, res) => {
     const bookingData = {
       bookingType,
       walkingType,
-      selectedDays,
-      selectedPetList,
-      selectedService,
-      selectedPackage,
-      isPackage,
+      selectedDays: req.body.selectedDays,
+      selectedPetList: req.body.selectedPetList,
+      selectedService: req.body.selectedService,
+      selectedPackage: req.body.selectedPackage || {},
+      isPackage: req.body.isPackage || false,
       walkingDuration,
       PaymentStatus,
       selectedAddress,
