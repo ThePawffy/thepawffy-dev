@@ -46,6 +46,7 @@ exports.createCheckoutSession = async (req, res) => {
       // ✅ NEW: deep links for iOS app
       success_url: `pawffy://payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `pawffy://payment-cancelled`,
+      return_url: `pawffy://payment-success?session_id={CHECKOUT_SESSION_ID}`,
     });
 
     return res.status(200).json({ success: true, url: session.url });
