@@ -11,7 +11,9 @@ npm-debug.log*
 
 # Firebase service keys
 serviceAccountKey.json
-firebase.b64
+firebase-key.json
+*.b64
+ser.json
 
 # OS files
 .DS_Store

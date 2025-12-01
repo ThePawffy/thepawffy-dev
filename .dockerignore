@@ -1,6 +1,26 @@
-/.git
-/node_modules
-.dockerignore
+# Git
+.git
+.gitignore
+
+# Node modules and build
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Environment files
 .env
+*.env
+
+# Firebase / Google keys
+firebase-key.json
+serviceAccountKey.json
+ser.json
+*.pem
+firebase.b64
+
+# Logs
+*.log
+
+# Docker internal
 Dockerfile
 fly.toml
